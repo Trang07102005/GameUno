@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.effect.InnerShadow?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.scene.text.Font?>
+
+<!-- 🔑 PHẢI CÓ -->
+
+<AnchorPane prefHeight="700.0" prefWidth="1000.0" style="-fx-background-color: linear-gradient(to bottom, #ff6b6b, #4ecdc4);" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.gameuno.Game">
+
+   <effect>
+      <InnerShadow>
+         <color>
+            <Color blue="0.1882352977991104" />
+         </color>
+      </InnerShadow>
+   </effect>
+
+   <children>
+      <BorderPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+
+         <!-- TOP -->
+         <top>
+            <VBox alignment="TOP_CENTER" prefHeight="100.0" spacing="10.0" style="-fx-background-color: rgba(255, 255, 255, 0.2); -fx-background-radius: 15;                          -fx-border-color: rgba(255,255,255,0.4); -fx-border-width: 2; -fx-border-radius: 15;" BorderPane.alignment="CENTER">
+               <children>
+                  <Label fx:id="currentPlayerLabel" text="Lượt: Bạn" textFill="WHITE">
+                     <font>
+                        <Font name="System Bold" size="24.0" />
+                     </font>
+                  </Label>
+                  <Label fx:id="gameStatusLabel" text="Chọn thẻ, UNO hoặc rút bài" textFill="#ffe83d">
+                     <font>
+                        <Font name="System Bold" size="14.0" />
+                     </font>
+                  </Label>
+                  <VBox alignment="CENTER" spacing="5.0">
+                     <children>
+                        <Label fx:id="topPlayerLabel" style="-fx-font-weight: bold;" text="Player 2 (5)" textFill="WHITE" />
+                        <HBox fx:id="topPlayer" alignment="CENTER" spacing="5.0" />
+                     </children>
+                  </VBox>
+               </children>
+               <padding>
+                  <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
+               </padding>
+               <effect>
+                  <DropShadow offsetY="5.0" />
+               </effect>
+            </VBox>
+         </top>
+
+         <!-- CENTER -->
+         <!-- CENTER -->
+         <center>
+            <VBox alignment="CENTER" spacing="20.0" style="-fx-background-color: rgba(0,0,0,0.3); -fx-background-radius: 20;                 -fx-border-color: rgba(255,255,255,0.5); -fx-border-width: 3; -fx-border-radius: 20;">
+               <children>
+
+                  <HBox alignment="CENTER" spacing="60.0">
+                     <children>
+
+                        <!-- Bộ bài -->
+                        <VBox alignment="CENTER" spacing="5.0">
+                           <children>
+                              <Label style="-fx-font-weight: bold;" text="Bộ bài" textFill="WHITE" />
+                              <Button fx:id="drawCardButton" mnemonicParsing="false" onAction="#drawCard" prefHeight="200.0" prefWidth="149.0" style="-fx-background-color: transparent; -fx-cursor: hand;" />
+                              <Label fx:id="deckCountLabel" text="" textFill="#ffeb3b" />
+                           </children>
+                        </VBox>
+
+                        <!-- Thẻ hiện tại -->
+                        <VBox alignment="CENTER" spacing="5.0">
+                           <children>
+                              <Label style="-fx-font-weight: bold;" text="Thẻ hiện tại" textFill="WHITE" />
+                              <StackPane fx:id="currentCardPane" prefHeight="120.0" prefWidth="80.0">
+                                 <children>
+                                    <ImageView fx:id="currentCardImage" fitHeight="195.0" fitWidth="130.0" />
+                                 </children>
+                                 <effect>
+                                    <DropShadow offsetY="3.0" />
+                                 </effect>
+                              </StackPane>
+                           </children>
+                        </VBox>
+
+                     </children>
+                  </HBox>
+
+
+                  <!-- Nút Gọi UNO dưới HBox -->
+                  <Button fx:id="unoButton" mnemonicParsing="false" onAction="#callUno" prefHeight="40.0" prefWidth="120.0" style="-fx-background-color: linear-gradient(to bottom, #FF6B6B, #FF5252);                         -fx-background-radius: 10; -fx-border-color: rgba(255,255,255,0.4);                         -fx-border-width: 2; -fx-border-radius: 10; -fx-cursor: hand;" text="🗣 Gọi UNO!" textFill="WHITE" />
+
+               </children>
+               <padding>
+                  <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+               </padding>
+               <effect>
+                  <DropShadow offsetY="8.0" />
+               </effect>
+            </VBox>
+         </center>
+
+
+         <!-- BOTTOM -->
+         <bottom>
+            <VBox alignment="CENTER" prefHeight="200.0" spacing="10.0" style="-fx-background-color: rgba(255,255,255,0.15); -fx-background-radius: 15;                 -fx-border-color: rgba(255,255,255,0.4); -fx-border-width: 2; -fx-border-radius: 15;" BorderPane.alignment="CENTER">
+               <children>
+                  <Label fx:id="bottomPlayerLabel" style="-fx-font-weight: bold;" text="Bạn (7)" textFill="WHITE" />
+                  <ScrollPane fitToHeight="true" fitToWidth="true" prefHeight="150.0" prefWidth="800.0" style="-fx-background: transparent;                             -fx-background-color: rgba(255,255,255,0.05);                             -fx-border-color: rgba(255,255,255,0.4);                             -fx-border-width: 2; -fx-border-radius: 15;                             -fx-background-radius: 15;">
+                     <content>
+                        <StackPane alignment="CENTER">
+                           <HBox fx:id="bottomPlayer" alignment="CENTER" maxWidth="Infinity" spacing="8.0" />
+                        </StackPane>
+                     </content>
+                  </ScrollPane>
+               </children>
+               <padding>
+                  <Insets bottom="15.0" left="30.0" right="30.0" top="15.0" />
+               </padding>
+               <effect>
+                  <DropShadow offsetY="5.0" />
+               </effect>
+            </VBox>
+         </bottom>
+
+
+         <!-- RIGHT -->
+         <right>
+            <VBox fx:id="rightPlayerContainer" alignment="CENTER" prefWidth="120.0" spacing="5.0" BorderPane.alignment="CENTER">
+               <children>
+                  <Label fx:id="rightPlayerLabel" style="-fx-font-weight: bold;" text="Player 4 (5)" textFill="WHITE" />
+                  <ScrollPane fitToWidth="true" prefHeight="300.0" style="-fx-background: transparent;                                      -fx-background-color: rgba(255,255,255,0.05);                                      -fx-border-color: rgba(255,255,255,0.4);                                      -fx-border-width: 2; -fx-border-radius: 15;                                      -fx-background-radius: 15;">
+                     <content>
+                        <VBox fx:id="rightPlayer" spacing="5.0" />
+                     </content>
+                  </ScrollPane>
+               </children>
+            </VBox>
+         </right>
+
+         <!-- LEFT -->
+         <left>
+            <VBox fx:id="leftPlayerContainer" alignment="CENTER" prefWidth="120.0" spacing="5.0" BorderPane.alignment="CENTER">
+               <children>
+                  <Label fx:id="leftPlayerLabel" style="-fx-font-weight: bold;" text="Player 3 (5)" textFill="WHITE" />
+                  <ScrollPane fitToWidth="true" prefHeight="300.0" style="-fx-background: transparent;                                      -fx-background-color: rgba(255,255,255,0.05);                                      -fx-border-color: rgba(255,255,255,0.4);                                      -fx-border-width: 2; -fx-border-radius: 15;                                      -fx-background-radius: 15;">
+                     <content>
+                        <VBox fx:id="leftPlayer" spacing="5.0" />
+                     </content>
+                  </ScrollPane>
+               </children>
+            </VBox>
+         </left>
+
+      </BorderPane>
+   </children>
+</AnchorPane>

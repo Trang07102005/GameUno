@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.effect.InnerShadow?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: linear-gradient(to bottom, #ff6b6b, #4ecdc4);" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.gameuno.EnterNames">
+   <effect>
+      <InnerShadow>
+         <color>
+            <Color blue="0.1882352977991104" />
+         </color>
+      </InnerShadow>
+   </effect>
+   <children>
+      <VBox alignment="CENTER"
+            AnchorPane.topAnchor="0.0"
+            AnchorPane.bottomAnchor="0.0"
+            AnchorPane.leftAnchor="0.0"
+            AnchorPane.rightAnchor="0.0"
+            style="-fx-background-color: rgba(255, 255, 255, 0.1); -fx-background-radius: 20; -fx-border-color: rgba(255, 255, 255, 0.3); -fx-border-width: 2; -fx-border-radius: 20;">
+         <children>
+            <Label style="-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0.5, 2, 2);" text="NHẬP TÊN NGƯỜI CHƠI" textFill="#eeecec">
+               <font>
+                  <Font name="System Bold" size="32.0" />
+               </font>
+            </Label>
+            <VBox fx:id="namesBox" alignment="CENTER" prefHeight="200.0" prefWidth="400.0" spacing="10.0" style="-fx-background-color: rgba(255, 255, 255, 0.05); -fx-background-radius: 15; -fx-padding: 20;" />
+            <Button mnemonicParsing="false" onAction="#startGame" prefHeight="50.0" prefWidth="180.0"
+                    style="-fx-background-color: linear-gradient(to right, #ff512f, #dd2476); -fx-text-fill: white; -fx-background-radius: 25; -fx-border-color: rgba(255,255,255,0.4); -fx-border-width: 2; -fx-cursor: hand; -fx-font-weight: bold; -fx-border-radius: 25;" text="✅ XÁC NHẬN">
+               <font>
+                  <Font size="16.0" />
+               </font>
+               <effect>
+                  <DropShadow offsetY="2.0">
+                     <color>
+                        <Color blue="0.3333333432674408" />
+                     </color>
+                  </DropShadow>
+               </effect>
+            </Button>
+         </children>
+         <effect>
+            <DropShadow offsetY="10.0" />
+         </effect>
+         <padding>
+            <Insets bottom="50.0" left="50.0" right="50.0" top="50.0" />
+         </padding>
+      </VBox>
+   </children>
+</AnchorPane>
