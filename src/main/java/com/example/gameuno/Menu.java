@@ -24,9 +24,18 @@ public class Menu {
 
     @FXML
     private void viewRules(ActionEvent event) {
-        System.out.println("📋 Thể lệ UNO: Mỗi người chia 7 lá, đánh bài theo màu hoặc số, ai hết bài trước thì thắng!");
-        // Bạn có thể thay = mở file FXML rules.fxml nếu muốn
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("rule.fxml"));
+            Scene scene = new Scene(loader.load());
+            Stage stage = new Stage();
+            stage.setTitle("Thể lệ UNO");
+            stage.setScene(scene);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
 
     @FXML
     private void exitGame(ActionEvent event) {

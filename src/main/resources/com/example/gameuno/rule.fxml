@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.example.gameuno.RuleController"
+            prefWidth="700" prefHeight="600"
+            style="-fx-background-color: linear-gradient(to bottom right, #ff6b6b, #feca57);">
+
+    <VBox alignment="TOP_CENTER"
+          spacing="20"
+          AnchorPane.topAnchor="30"
+          AnchorPane.leftAnchor="30"
+          AnchorPane.rightAnchor="30"
+          AnchorPane.bottomAnchor="30"
+          style="
+            -fx-background-color: #fff9db;
+            -fx-padding: 40;
+            -fx-background-radius: 20;
+            -fx-border-color: #70a1ff;
+            -fx-border-width: 3;
+            -fx-border-radius: 20;
+            -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 20, 0, 0, 4);
+          ">
+
+        <!-- Tiêu đề -->
+        <VBox alignment="CENTER"
+              style="
+                -fx-background-color: #70a1ff;
+                -fx-padding: 10 20;
+                -fx-background-radius: 15;
+                -fx-border-radius: 15;
+                -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 2);
+              ">
+            <Label text="🎴  THỂ LỆ UNO 🎴"
+                   style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+        </VBox>
+
+        <ScrollPane prefWidth="600" prefHeight="400"
+                    fitToWidth="true"
+                    style="-fx-background: #ffffff; -fx-border-color: #70a1ff; -fx-border-radius: 10; -fx-background-radius: 10;">
+            <VBox spacing="10" style="-fx-padding: 15;">
+                <!-- Các mục chính có màu khác nhau -->
+                <Label text="✅ 1️⃣ Mỗi người chơi được chia 7 lá bài."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #1e90ff;"/>
+
+                <!-- Giải thích: đậm & đen -->
+                <Label text="📌 Phần còn lại đặt giữa bàn làm Nọc."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+
+                <Label text="✅ 2️⃣ Lật 1 lá bài từ Nọc làm lá bài Bắt đầu."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #8e44ad;"/>
+
+                <Label text="✅ 3️⃣ Đánh bài trùng 🎨 MÀU hoặc 🔢 SỐ với lá trên bàn."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #e67e22;"/>
+
+                <Label text="✅ 4️⃣ ❌ Nếu không có bài hợp lệ:"
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;"/>
+                <!-- Các dòng bổ sung: đậm, đen -->
+                <Label text="   • 🃏 Phải bốc 1 lá từ Nọc."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+                <Label text="   • Nếu bốc hợp lệ thì đánh ngay."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+                <Label text="   • Nếu không thì bỏ lượt."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+
+                <Label text="✅ 5️⃣ Các lá bài đặc biệt:"
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #2ecc71;"/>
+                <Label text="   • ⏭️ Skip: Bỏ lượt người kế tiếp."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+                <Label text="   • 🔄 Reverse: Đổi chiều chơi."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+                <Label text="   • ➕2️⃣ Draw Two: Bắt người kế tiếp rút 2 lá."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+                <Label text="   • 🎨 Wild: Đổi màu tuỳ chọn."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+                <Label text="   • 🎨➕4️⃣ Wild Draw Four: Đổi màu + bắt người kế tiếp rút 4 lá."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+
+                <Label text="✅ 6️⃣ 🚨 Khi còn 1 lá phải hô 'UNO'!"
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #f39c12;"/>
+                <Label text="   ❗ Nếu không sẽ bị phạt rút thêm 2 lá."
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #000000;"/>
+
+                <Label text="✅ 7️⃣ 🏆 Ai đánh hết bài trước sẽ thắng!"
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #3498db;"/>
+                <Label text="🎊 Chúc bạn chơi UNO vui vẻ!"
+                       style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #27ae60;"/>
+            </VBox>
+        </ScrollPane>
+
+
+        <!-- Nút Đóng -->
+        <Button text="👍 Đóng"
+                onAction="#closeRule"
+                style="
+                    -fx-background-color: #70a1ff;
+                    -fx-text-fill: white;
+                    -fx-font-size: 14px;
+                    -fx-font-weight: bold;
+                    -fx-background-radius: 20;
+                    -fx-cursor: hand;
+                    -fx-padding: 8 30;
+                  "/>
+    </VBox>
+</AnchorPane>
