@@ -2,6 +2,7 @@ package com.example.gameuno;
 
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
@@ -10,14 +11,19 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.fxml.FXMLLoader;
 
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 public class Game {
-
+    @FXML private Button replayButton;
     @FXML private ImageView currentCardImage;
     @FXML private Label currentPlayerLabel;
     @FXML private Label gameStatusLabel;
@@ -190,7 +196,7 @@ public class Game {
                 }
                 gameStatusLabel.setText("⚠️ " + myName + " quên kêu UNO! Bị phạt 2 lá!");
             } else if (playerHand.isEmpty()) {
-                gameStatusLabel.setText("🏆 " + myName + " đã thắng!");
+                endGame(myName);
                 return;
             }
 
@@ -215,7 +221,9 @@ public class Game {
                 case "Green" -> card.setDynamicColor(UnoCard.Color.Green);
                 case "Blue" -> card.setDynamicColor(UnoCard.Color.Blue);
             }
-            gameStatusLabel.setText("🎨 Đã đổi màu thành " + color);
+            card.setDynamicColor(UnoCard.Color.valueOf(color));
+            gameStatusLabel.setText("🎨 Bạn chọn màu " + color.toUpperCase());
+
         });
     }
 
@@ -265,6 +273,8 @@ public class Game {
     private void aiTurn(int index) {
         List<UnoCard> hand = getHand(index);
         UnoCard chosen = null;
+
+        // Tìm lá có thể đánh
         for (UnoCard card : hand) {
             if (card.getColor() == currentCard.getColor()
                     || card.getValue() == currentCard.getValue()
@@ -278,13 +288,19 @@ public class Game {
             hand.remove(chosen);
             removeFaceDown(index);
 
+            // Nếu là lá Wild hoặc WildDrawFour, chọn màu ngẫu nhiên
             if (chosen.getValue() == UnoCard.Value.Wild || chosen.getValue() == UnoCard.Value.WildDrawFour) {
-                UnoCard.Color[] colors = UnoCard.Color.values();
+                UnoCard.Color[] colors = {UnoCard.Color.Red, UnoCard.Color.Yellow, UnoCard.Color.Green, UnoCard.Color.Blue};
                 UnoCard.Color picked = colors[(int) (Math.random() * 4)];
-                chosen.setDynamicColor(picked);
-                gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đổi màu thành " + picked);
+                chosen.setDynamicColor(colors[new Random().nextInt(colors.length)]);
+                gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh Wild và chọn màu " + chosen.getColor());
+
             }
 
+            currentCard = chosen;
+            updateCurrentCardView(chosen);
+
+            // Combo: DrawTwo / WildDrawFour
             if (chosen.getValue() == UnoCard.Value.DrawTwo || chosen.getValue() == UnoCard.Value.WildDrawFour) {
                 if (comboType == null) {
                     comboType = chosen.getValue();
@@ -292,16 +308,26 @@ public class Game {
                 } else {
                     penaltyStack += (chosen.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
                 }
-                currentCard = chosen;
-                updateCurrentCardView(chosen);
                 skipNext();
                 return;
             }
 
-            currentCard = chosen;
-            updateCurrentCardView(chosen);
-            gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh " + chosen);
+            // Skip
+            if (chosen.getValue() == UnoCard.Value.Skip) {
+                gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh Skip!");
+                skipNext();
+                return;
+            }
 
+            // Reverse
+            if (chosen.getValue() == UnoCard.Value.Reverse) {
+                direction *= -1;
+                gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh Reverse! Đổi chiều.");
+            } else {
+                gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh " + chosen);
+            }
+
+            // UNO
             if (hand.size() == 1 && !aiUno[index]) {
                 aiUno[index] = true;
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " kêu UNO!");
@@ -310,17 +336,22 @@ public class Game {
                 unoPause.play();
                 return;
             }
+
+            // Thắng
             if (hand.isEmpty()) {
-                gameStatusLabel.setText("🏆 " + playerNames.get(index - 1) + " đã thắng!");
+                endGame(playerNames.get(index - 1));
                 return;
             }
 
+
         } else {
+            // Không đánh được => bốc bài
             int drawCount = (comboType != null) ? penaltyStack : 1;
             for (int i = 0; i < drawCount; i++) {
                 hand.add(deck.drawCard());
                 addFaceDown(index);
             }
+
             if (comboType != null) {
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " bốc " + penaltyStack + " lá combo!");
                 comboType = null;
@@ -331,10 +362,12 @@ public class Game {
         }
 
         updatePlayerLabels();
+
         PauseTransition delay = new PauseTransition(Duration.seconds(1));
         delay.setOnFinished(e -> nextTurn());
         delay.play();
     }
+
 
     private void updatePlayerLabels() {
         bottomPlayerLabel.setText(myName + " (" + playerHand.size() + ")");
@@ -373,4 +406,26 @@ public class Game {
         backImage.setFitHeight(80);
         return new StackPane(backImage);
     }
+    private void endGame(String winnerName) {
+        gameStatusLabel.setText("🏆 " + winnerName + " đã thắng!");
+
+        replayButton.setVisible(true);  // Hiện nút chơi lại
+        replayButton.setOnAction(e -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("Game.fxml"));
+                Scene gameScene = new Scene(loader.load());
+                Stage stage = (Stage) currentCardPane.getScene().getWindow();
+                stage.setScene(gameScene);
+                stage.setTitle("UNO - Ván mới");
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        PauseTransition delay = new PauseTransition(Duration.seconds(3));
+        delay.setOnFinished(e -> gameStatusLabel.setText("👉 Nhấn 'Chơi lại' để bắt đầu ván mới."));
+        delay.play();
+    }
+
+
 }
