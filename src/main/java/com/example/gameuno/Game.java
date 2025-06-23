@@ -31,6 +31,7 @@ public class Game {
     private UnoDeck deck;
     private UnoCard currentCard;
     private List<UnoCard> playerHand;
+
     private List<UnoCard> ai2Hand = new ArrayList<>();
     private List<UnoCard> ai3Hand = new ArrayList<>();
     private List<UnoCard> ai4Hand = new ArrayList<>();
@@ -40,19 +41,20 @@ public class Game {
     private boolean unoCalled = false;
     private boolean[] aiUno = new boolean[5];
 
-    private List<String> playerNames; // Danh sách tên (bao gồm tên thật + tên bot)
-    private String myName;             // Tên người chơi thật
+    private int penaltyStack = 0;
+    private UnoCard.Value comboType = null;
+
+    private List<String> playerNames;
+    private String myName;
 
     @FXML
     public void initialize() {
         deck = new UnoDeck();
         playerHand = new ArrayList<>();
 
-        // 👉 Đảm bảo kích thước đồng nhất với thẻ hiện tại
-        double cardWidth = 60;   // Giống currentCardImage
-        double cardHeight = 100; // Giống currentCardImage
+        double cardWidth = 60;
+        double cardHeight = 100;
 
-        // Gắn hình mặt sau cho nút bộ bài
         String backImagePath = getClass().getResource("/cards/Back.png").toExternalForm();
         ImageView backImage = new ImageView(backImagePath);
         backImage.setFitWidth(cardWidth);
@@ -72,12 +74,10 @@ public class Game {
         updateDeckCount();
     }
 
-
-    /** Khởi tạo game với tên & số người chơi **/
     public void initPlayers(int numberOfPlayers, List<String> playerNames) {
         this.numberOfPlayers = numberOfPlayers;
         this.playerNames = playerNames;
-        this.myName = playerNames.get(0); // Tên thật là người đầu tiên
+        this.myName = playerNames.get(0);
 
         unoCalled = false;
 
@@ -100,30 +100,39 @@ public class Game {
         updatePlayerLabels();
     }
 
-    /** Nút bốc bài **/
     @FXML
     private void drawCard() {
         if (currentPlayer != 1) {
             gameStatusLabel.setText("❌ Không phải lượt của bạn!");
             return;
         }
-        UnoCard card = deck.drawCard();
-        playerHand.add(card);
-        addCardToHand(card);
+
+        int drawCount = (comboType != null) ? penaltyStack : 1;
+        for (int i = 0; i < drawCount; i++) {
+            UnoCard card = deck.drawCard();
+            playerHand.add(card);
+            addCardToHand(card);
+        }
         updateDeckCount();
+
+        if (comboType != null) {
+            gameStatusLabel.setText("💥 " + myName + " bốc " + penaltyStack + " lá do combo!");
+            comboType = null;
+            penaltyStack = 0;
+        } else {
+            gameStatusLabel.setText("🃏 " + myName + " đã rút 1 lá.");
+        }
+
         unoCalled = false;
-        gameStatusLabel.setText("🃏 " + myName + " đã rút 1 lá.");
         nextTurn();
     }
 
-    /** Nút gọi UNO **/
     @FXML
     private void callUno() {
         unoCalled = true;
         gameStatusLabel.setText("🗣️ " + myName + " đã kêu UNO!");
     }
 
-    /** Thêm bài vào tay người chơi **/
     private void addCardToHand(UnoCard card) {
         String imagePath = getClass().getResource(card.getImagePath()).toExternalForm();
         ImageView imageView = new ImageView(imagePath);
@@ -138,7 +147,6 @@ public class Game {
         bottomPlayer.getChildren().add(cardBtn);
     }
 
-    /** Đánh bài **/
     private void playCard(UnoCard card, Button cardBtn) {
         if (currentPlayer != 1) {
             gameStatusLabel.setText("❌ Không phải lượt của bạn!");
@@ -153,8 +161,13 @@ public class Game {
                 handleWild(card);
             }
 
-            if (card.getValue() == UnoCard.Value.DrawTwo) {
-                givePenalty(getNextPlayer(), 2);
+            if (card.getValue() == UnoCard.Value.DrawTwo || card.getValue() == UnoCard.Value.WildDrawFour) {
+                if (comboType == null) {
+                    comboType = card.getValue();
+                    penaltyStack = (card.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
+                } else {
+                    penaltyStack += (card.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
+                }
                 skipNext();
             } else if (card.getValue() == UnoCard.Value.Skip) {
                 skipNext();
@@ -189,7 +202,6 @@ public class Game {
         }
     }
 
-    /** Xử lý Wild và WildDrawFour **/
     private void handleWild(UnoCard card) {
         List<String> options = List.of("Red", "Yellow", "Green", "Blue");
         ChoiceDialog<String> dialog = new ChoiceDialog<>("Red", options);
@@ -205,14 +217,8 @@ public class Game {
             }
             gameStatusLabel.setText("🎨 Đã đổi màu thành " + color);
         });
-
-        if (card.getValue() == UnoCard.Value.WildDrawFour) {
-            givePenalty(getNextPlayer(), 4);
-            skipNext();
-        }
     }
 
-    /** Phạt bốc bài **/
     private void givePenalty(int playerIndex, int cards) {
         List<UnoCard> hand = getHand(playerIndex);
         for (int i = 0; i < cards; i++) {
@@ -243,7 +249,6 @@ public class Game {
         return next;
     }
 
-    /** Chuyển lượt **/
     private void nextTurn() {
         currentPlayer = getNextPlayer();
         if (currentPlayer == 1) {
@@ -257,7 +262,6 @@ public class Game {
         }
     }
 
-    /** Lượt AI **/
     private void aiTurn(int index) {
         List<UnoCard> hand = getHand(index);
         UnoCard chosen = null;
@@ -273,12 +277,27 @@ public class Game {
         if (chosen != null) {
             hand.remove(chosen);
             removeFaceDown(index);
+
             if (chosen.getValue() == UnoCard.Value.Wild || chosen.getValue() == UnoCard.Value.WildDrawFour) {
                 UnoCard.Color[] colors = UnoCard.Color.values();
                 UnoCard.Color picked = colors[(int) (Math.random() * 4)];
                 chosen.setDynamicColor(picked);
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đổi màu thành " + picked);
             }
+
+            if (chosen.getValue() == UnoCard.Value.DrawTwo || chosen.getValue() == UnoCard.Value.WildDrawFour) {
+                if (comboType == null) {
+                    comboType = chosen.getValue();
+                    penaltyStack = (chosen.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
+                } else {
+                    penaltyStack += (chosen.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
+                }
+                currentCard = chosen;
+                updateCurrentCardView(chosen);
+                skipNext();
+                return;
+            }
+
             currentCard = chosen;
             updateCurrentCardView(chosen);
             gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh " + chosen);
@@ -297,10 +316,18 @@ public class Game {
             }
 
         } else {
-            UnoCard drawn = deck.drawCard();
-            hand.add(drawn);
-            addFaceDown(index);
-            gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " bốc 1 lá");
+            int drawCount = (comboType != null) ? penaltyStack : 1;
+            for (int i = 0; i < drawCount; i++) {
+                hand.add(deck.drawCard());
+                addFaceDown(index);
+            }
+            if (comboType != null) {
+                gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " bốc " + penaltyStack + " lá combo!");
+                comboType = null;
+                penaltyStack = 0;
+            } else {
+                gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " bốc 1 lá");
+            }
         }
 
         updatePlayerLabels();
@@ -309,7 +336,6 @@ public class Game {
         delay.play();
     }
 
-    /** Cập nhật tên + số bài của mọi người **/
     private void updatePlayerLabels() {
         bottomPlayerLabel.setText(myName + " (" + playerHand.size() + ")");
         topPlayerLabel.setText(playerNames.get(1) + " (" + ai2Hand.size() + ")");

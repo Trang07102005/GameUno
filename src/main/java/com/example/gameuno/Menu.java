@@ -6,8 +6,36 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 
 public class Menu {
+
+    @FXML
+    private Button soundButton;
+
+    @FXML
+    private void initialize() {
+        if (SoundManager.isSoundOn()) {
+            soundButton.setText("🔊");
+            SoundManager.playBGM();
+        } else {
+            soundButton.setText("🔇");
+        }
+    }
+
+    @FXML
+    private void toggleSound() {
+        SoundManager.setSoundOn(!SoundManager.isSoundOn());
+
+        if (SoundManager.isSoundOn()) {
+            soundButton.setText("🔊");
+            SoundManager.playBGM();
+        } else {
+            soundButton.setText("🔇");
+            SoundManager.stopBGM();
+        }
+    }
+
     @FXML
     private void playGame(ActionEvent event) {
         try {
@@ -35,7 +63,6 @@ public class Menu {
             e.printStackTrace();
         }
     }
-
 
     @FXML
     private void exitGame(ActionEvent event) {

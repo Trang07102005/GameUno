@@ -10,26 +10,58 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: linear-gradient(to bottom, #ff6b6b, #4ecdc4);" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.gameuno.Menu">
+<AnchorPane prefHeight="400.0" prefWidth="600.0"
+            style="-fx-background-color: linear-gradient(to bottom, #ff6b6b, #4ecdc4);"
+            xmlns="http://javafx.com/javafx/23.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.gameuno.Menu">
+
    <effect>
       <InnerShadow color="#00000030" />
    </effect>
+
    <children>
       <VBox alignment="CENTER"
-            spacing="40.0"
+            spacing="30.0"
             AnchorPane.topAnchor="0.0"
             AnchorPane.bottomAnchor="0.0"
             AnchorPane.leftAnchor="0.0"
             AnchorPane.rightAnchor="0.0"
-            style="-fx-background-color: rgba(255, 255, 255, 0.3); -fx-background-radius: 20; -fx-border-width: 2; -fx-border-radius: 20;">
+            style="-fx-background-color: rgba(255, 255, 255, 0.3);
+                   -fx-background-radius: 20;
+                   -fx-border-width: 2;
+                   -fx-border-radius: 20;">
          <children>
-            <Label style="-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0.5, 2, 2);" text="UNO GAME" textFill="#eeecec">
+            <!-- Tiêu đề -->
+            <Label style="-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0.5, 2, 2);"
+                   text="UNO GAME" textFill="#eeecec">
                <font>
                   <Font name="System Bold" size="40.0" />
                </font>
             </Label>
-            <Button fx:id="playButton" onAction="#playGame" prefHeight="60.0" prefWidth="200.0"
-                    style="-fx-background-color: linear-gradient(to bottom, #ff4757, #ff3742); -fx-text-fill: white; -fx-background-radius: 30; -fx-border-color: rgba(255,255,255,0.3); -fx-border-width: 2; -fx-cursor: hand; -fx-border-radius: 30;" text="🎮 Chơi ngay">
+
+            <!-- Nút bật/tắt âm thanh -->
+            <Button fx:id="soundButton"
+                    onAction="#toggleSound"
+                    prefHeight="40.0" prefWidth="80.0"
+                    text="🔊"
+                    style="-fx-background-color: white;
+                           -fx-background-radius: 20;
+                           -fx-font-size: 20;
+                           -fx-cursor: hand;" />
+
+            <!-- Nút chơi game -->
+            <Button fx:id="playButton"
+                    onAction="#playGame"
+                    prefHeight="60.0" prefWidth="200.0"
+                    style="-fx-background-color: linear-gradient(to bottom, #ff4757, #ff3742);
+                           -fx-text-fill: white;
+                           -fx-background-radius: 30;
+                           -fx-border-color: rgba(255,255,255,0.3);
+                           -fx-border-width: 2;
+                           -fx-cursor: hand;
+                           -fx-border-radius: 30;"
+                    text="🎮 Chơi ngay">
                <font>
                   <Font name="System Bold" size="18.0" />
                </font>
@@ -41,8 +73,19 @@
                   </DropShadow>
                </effect>
             </Button>
-            <Button fx:id="rulesButton" onAction="#viewRules" prefHeight="60.0" prefWidth="200.0"
-                    style="-fx-background-color: linear-gradient(to bottom, #3742fa, #2f3542); -fx-text-fill: white; -fx-background-radius: 30; -fx-border-color: rgba(255,255,255,0.3); -fx-border-width: 2; -fx-cursor: hand; -fx-border-radius: 30;" text="📋 Thể lệ">
+
+            <!-- Nút thể lệ -->
+            <Button fx:id="rulesButton"
+                    onAction="#viewRules"
+                    prefHeight="60.0" prefWidth="200.0"
+                    style="-fx-background-color: linear-gradient(to bottom, #3742fa, #2f3542);
+                           -fx-text-fill: white;
+                           -fx-background-radius: 30;
+                           -fx-border-color: rgba(255,255,255,0.3);
+                           -fx-border-width: 2;
+                           -fx-cursor: hand;
+                           -fx-border-radius: 30;"
+                    text="📋 Thể lệ">
                <font>
                   <Font name="System Bold" size="18.0" />
                </font>
@@ -54,21 +97,35 @@
                   </DropShadow>
                </effect>
             </Button>
-            <Button fx:id="exitButton" alignment="CENTER" onAction="#exitGame" prefHeight="60.0" prefWidth="200.0"
-                    style="-fx-background-color: linear-gradient(to bottom, #747d8c, #57606f); -fx-text-fill: white; -fx-background-radius: 30; -fx-border-color: rgba(255,255,255,0.3); -fx-border-width: 2; -fx-cursor: hand; -fx-border-radius: 30;" text="🚪 Thoát">
+
+            <!-- Nút thoát -->
+            <Button fx:id="exitButton"
+                    onAction="#exitGame"
+                    prefHeight="60.0" prefWidth="200.0"
+                    style="-fx-background-color: linear-gradient(to bottom, #747d8c, #57606f);
+                           -fx-text-fill: white;
+                           -fx-background-radius: 30;
+                           -fx-border-color: rgba(255,255,255,0.3);
+                           -fx-border-width: 2;
+                           -fx-cursor: hand;
+                           -fx-border-radius: 30;"
+                    text="🚪 Thoát">
                <font>
                   <Font name="System Bold" size="18.0" />
                </font>
             </Button>
          </children>
+
          <effect>
             <DropShadow offsetY="10.0" />
          </effect>
+
          <padding>
             <Insets bottom="50.0" left="50.0" right="50.0" top="50.0" />
          </padding>
       </VBox>
    </children>
+
    <effect>
       <InnerShadow>
          <color>
