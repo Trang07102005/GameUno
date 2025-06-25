@@ -51,28 +51,40 @@
                            -fx-cursor: hand;" />
 
             <!-- Nút chơi game -->
-            <Button fx:id="playButton"
-                    onAction="#playGame"
+            <!-- 🌙 Chơi Offline -->
+            <Button fx:id="offlineButton"
+                    onAction="#playOffline"
                     prefHeight="60.0" prefWidth="200.0"
-                    style="-fx-background-color: linear-gradient(to bottom, #ff4757, #ff3742);
-                           -fx-text-fill: white;
-                           -fx-background-radius: 30;
-                           -fx-border-color: rgba(255,255,255,0.3);
-                           -fx-border-width: 2;
-                           -fx-cursor: hand;
-                           -fx-border-radius: 30;"
-                    text="🎮 Chơi ngay">
+                    text="🌙 Chơi Offline"
+                    style="-fx-background-color: linear-gradient(to bottom, #2ed573, #1eae60);
+               -fx-text-fill: white;
+               -fx-background-radius: 30;
+               -fx-border-color: rgba(255,255,255,0.3);
+               -fx-border-width: 2;
+               -fx-cursor: hand;
+               -fx-border-radius: 30;">
                <font>
                   <Font name="System Bold" size="18.0" />
                </font>
-               <effect>
-                  <DropShadow height="17.0" offsetY="3.0" radius="8.0" width="17.0">
-                     <color>
-                        <Color blue="0.3137255012989044" opacity="0.31" />
-                     </color>
-                  </DropShadow>
-               </effect>
             </Button>
+
+            <!-- 🌐 Chơi Online -->
+            <Button fx:id="onlineButton"
+                    onAction="#playOnline"
+                    prefHeight="60.0" prefWidth="200.0"
+                    text="🌐 Chơi Online"
+                    style="-fx-background-color: linear-gradient(to bottom, #1e90ff, #1565c0);
+               -fx-text-fill: white;
+               -fx-background-radius: 30;
+               -fx-border-color: rgba(255,255,255,0.3);
+               -fx-border-width: 2;
+               -fx-cursor: hand;
+               -fx-border-radius: 30;">
+               <font>
+                  <Font name="System Bold" size="18.0" />
+               </font>
+            </Button>
+
 
             <!-- Nút thể lệ -->
             <Button fx:id="rulesButton"

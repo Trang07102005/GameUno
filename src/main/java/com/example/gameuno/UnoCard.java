@@ -55,4 +55,9 @@ public class UnoCard {
     public String toString() {
         return getColor() + " " + value;
     }
+    public static UnoCard fromString(String s) {
+        String[] parts = s.trim().split(" ");
+        return new UnoCard(UnoCard.Color.valueOf(parts[0]), UnoCard.Value.valueOf(parts[1]));
+    }
+
 }

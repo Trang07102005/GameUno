@@ -32,7 +32,10 @@
 
          <!-- TOP -->
          <top>
-            <VBox alignment="TOP_CENTER" prefHeight="100.0" spacing="10.0" style="-fx-background-color: rgba(255, 255, 255, 0.2); -fx-background-radius: 15;                          -fx-border-color: rgba(255,255,255,0.4); -fx-border-width: 2; -fx-border-radius: 15;" BorderPane.alignment="CENTER">
+            <VBox alignment="TOP_CENTER" prefHeight="100.0" spacing="10.0"
+                  style="-fx-background-color: rgba(255, 255, 255, 0.2); -fx-background-radius: 15;
+                -fx-border-color: rgba(255,255,255,0.4); -fx-border-width: 2; -fx-border-radius: 15;"
+                  BorderPane.alignment="CENTER">
                <children>
                   <Label fx:id="currentPlayerLabel" text="Lượt: Bạn" textFill="WHITE">
                      <font>
@@ -50,6 +53,13 @@
                         <HBox fx:id="topPlayer" alignment="CENTER" spacing="5.0" />
                      </children>
                   </VBox>
+
+                  <!-- ✅ Nút Thoát -->
+                  <Button fx:id="exitButton"
+                          text="❌ Thoát"
+                          onAction="#handleExit"
+                          style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-background-radius: 8; -fx-cursor: hand;"
+                          prefWidth="80" prefHeight="30" />
                </children>
                <padding>
                   <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
@@ -59,6 +69,7 @@
                </effect>
             </VBox>
          </top>
+
 
          <!-- CENTER -->
          <!-- CENTER -->

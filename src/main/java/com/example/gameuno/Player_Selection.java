@@ -3,6 +3,7 @@ package com.example.gameuno;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.scene.Node;
@@ -13,6 +14,16 @@ import javafx.scene.Node;
 public class Player_Selection {
 
     private int numberOfPlayers;
+    private boolean isOnline;
+    private UnoClientConnection client;
+
+    /**
+     * Khởi tạo chế độ chơi và kết nối client (nếu Online).
+     */
+    public void init(boolean isOnline, UnoClientConnection client) {
+        this.isOnline = isOnline;
+        this.client = client;
+    }
 
     /**
      * Chọn 2 người chơi
@@ -51,7 +62,8 @@ public class Player_Selection {
     private void goBackToMenu(ActionEvent event) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/gameuno/menu.fxml"));
-            Scene scene = new Scene(loader.load());
+            Parent root = loader.load();
+            Scene scene = new Scene(root);
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle("UNO MENU");
@@ -67,12 +79,10 @@ public class Player_Selection {
     private void goToEnterNames(ActionEvent event) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/gameuno/enter_names.fxml"));
-            Scene scene = new Scene(loader.load());
-
-            // Gọi controller EnterNames để truyền số người chơi
+            Parent root = loader.load();
             EnterNames enterNamesController = loader.getController();
-            enterNamesController.initNumberOfPlayers(numberOfPlayers);
-
+            enterNamesController.initNumberOfPlayers(numberOfPlayers, isOnline, client);
+            Scene scene = new Scene(root);
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle("Nhập tên người chơi");

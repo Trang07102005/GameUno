@@ -52,6 +52,7 @@ public class Game {
 
     private List<String> playerNames;
     private String myName;
+    @FXML private Button exitButton;
 
     @FXML
     public void initialize() {
@@ -113,6 +114,11 @@ public class Game {
             return;
         }
 
+        if (comboType != null && hasComboCard(playerHand)) {
+            gameStatusLabel.setText("❌ Bạn phải đánh lá " + comboType + " để chồng bài hoặc rút phạt!");
+            return;
+        }
+
         int drawCount = (comboType != null) ? penaltyStack : 1;
         for (int i = 0; i < drawCount; i++) {
             UnoCard card = deck.drawCard();
@@ -133,12 +139,18 @@ public class Game {
         nextTurn();
     }
 
+    private boolean hasComboCard(List<UnoCard> hand) {
+        for (UnoCard card : hand) {
+            if (card.getValue() == comboType) return true;
+        }
+        return false;
+    }
+
     @FXML
     private void callUno() {
         unoCalled = true;
         gameStatusLabel.setText("🗣️ " + myName + " đã kêu UNO!");
     }
-
     private void addCardToHand(UnoCard card) {
         String imagePath = getClass().getResource(card.getImagePath()).toExternalForm();
         ImageView imageView = new ImageView(imagePath);
@@ -425,6 +437,11 @@ public class Game {
         PauseTransition delay = new PauseTransition(Duration.seconds(3));
         delay.setOnFinished(e -> gameStatusLabel.setText("👉 Nhấn 'Chơi lại' để bắt đầu ván mới."));
         delay.play();
+    }
+    @FXML
+    private void handleExit() {
+        Stage stage = (Stage) exitButton.getScene().getWindow();
+        stage.close();
     }
 
 
