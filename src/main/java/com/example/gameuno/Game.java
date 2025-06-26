@@ -47,6 +47,9 @@ public class Game {
     private boolean unoCalled = false;
     private boolean[] aiUno = new boolean[5];
 
+    private PauseTransition turnTimer;
+
+
     private int penaltyStack = 0;
     private UnoCard.Value comboType = null;
 
@@ -113,6 +116,8 @@ public class Game {
             gameStatusLabel.setText("❌ Không phải lượt của bạn!");
             return;
         }
+        if (turnTimer != null) turnTimer.stop(); // ⏹ Khi người chơi rút bài
+
 
         if (comboType != null && hasComboCard(playerHand)) {
             gameStatusLabel.setText("❌ Bạn phải đánh lá " + comboType + " để chồng bài hoặc rút phạt!");
@@ -170,6 +175,8 @@ public class Game {
             gameStatusLabel.setText("❌ Không phải lượt của bạn!");
             return;
         }
+        if (turnTimer != null) turnTimer.stop(); // ⏹ Khi người chơi đánh bài
+
 
         if (card.getColor() == currentCard.getColor()
                 || card.getValue() == currentCard.getValue()
@@ -274,12 +281,33 @@ public class Game {
         if (currentPlayer == 1) {
             gameStatusLabel.setText("👉 Tới lượt " + myName);
             currentPlayerLabel.setText("Lượt: " + myName);
+            startTurnTimer(); // 🟢 Bắt đầu đếm ngược cho người chơi
         } else {
             currentPlayerLabel.setText("Lượt: " + playerNames.get(currentPlayer - 1));
             PauseTransition delay = new PauseTransition(Duration.seconds(1.5));
             delay.setOnFinished(e -> aiTurn(currentPlayer));
             delay.play();
         }
+    }
+
+    // 👉 THÊM NGAY SAU ĐÂY:
+    private void startTurnTimer() {
+        if (turnTimer != null) {
+            turnTimer.stop();
+        }
+
+        turnTimer = new PauseTransition(Duration.seconds(10)); // ⏱ 10 giây mỗi lượt
+        turnTimer.setOnFinished(e -> {
+            if (currentPlayer == 1) {
+                gameStatusLabel.setText("⌛ Hết giờ! Bạn bị rút 1 lá!");
+                UnoCard card = deck.drawCard();
+                playerHand.add(card);
+                addCardToHand(card);
+                updateDeckCount();
+                nextTurn();
+            }
+        });
+        turnTimer.play();
     }
 
     private void aiTurn(int index) {
@@ -419,6 +447,15 @@ public class Game {
         return new StackPane(backImage);
     }
     private void endGame(String winnerName) {
+        // Ngừng nhạc nền để tránh lấn át tiếng hiệu ứng
+        SoundManager.stopBGM();
+
+        if (winnerName.equals(myName)) {
+            SoundManager.playWin(); // 🥳 Thắng
+        } else {
+            SoundManager.playError(); // 😭 Thua
+        }
+
         gameStatusLabel.setText("🏆 " + winnerName + " đã thắng!");
 
         replayButton.setVisible(true);  // Hiện nút chơi lại
@@ -438,11 +475,62 @@ public class Game {
         delay.setOnFinished(e -> gameStatusLabel.setText("👉 Nhấn 'Chơi lại' để bắt đầu ván mới."));
         delay.play();
     }
+
+
+
+    // ➕ THÊM ở đây:
+    public void resetGame() {
+        deck = new UnoDeck();
+        playerHand.clear();
+        ai2Hand.clear();
+        ai3Hand.clear();
+        ai4Hand.clear();
+        currentPlayer = 1;
+        direction = 1;
+        unoCalled = false;
+        comboType = null;
+        penaltyStack = 0;
+        aiUno = new boolean[5];
+
+        bottomPlayer.getChildren().clear();
+        topPlayer.getChildren().clear();
+        leftPlayer.getChildren().clear();
+        rightPlayer.getChildren().clear();
+        gameStatusLabel.setText("");
+        replayButton.setVisible(false);
+
+        updateDeckCount();
+        for (int i = 0; i < 7; i++) {
+            UnoCard card = deck.drawCard();
+            playerHand.add(card);
+            addCardToHand(card);
+        }
+        currentCard = deck.drawCard();
+        updateCurrentCardView(currentCard);
+    }
+
+
     @FXML
     private void handleExit() {
         Stage stage = (Stage) exitButton.getScene().getWindow();
         stage.close();
     }
 
+    @FXML
+    private void handleReplay() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("Game.fxml"));
+            Scene gameScene = new Scene(loader.load());
 
+            Game newGameController = loader.getController();
+            newGameController.initPlayers(numberOfPlayers, playerNames);  // thiết lập lại người chơi
+            newGameController.resetGame();  // reset lại bài, trạng thái
+
+            Stage stage = (Stage) currentCardPane.getScene().getWindow();
+            stage.setScene(gameScene);
+            stage.setTitle("UNO - Ván mới");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
 }

@@ -30,11 +30,14 @@ public class SoundManager {
         if (!isSoundOn) return;
         if (bgmPlayer == null) {
             URL resource = SoundManager.class.getResource("/sounds/bgm.mp3");
+            System.out.println("🎵 Loading BGM: " + resource); // Debug log
             bgmPlayer = new MediaPlayer(new Media(resource.toString()));
             bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            bgmPlayer.setVolume(0.3); // 👈 Giảm âm lượng nhạc nền
         }
         bgmPlayer.play();
     }
+
 
     public static void stopBGM() {
         if (bgmPlayer != null) {
@@ -58,7 +61,9 @@ public class SoundManager {
     private static void playSound(String fileName) {
         if (!isSoundOn) return;
         URL resource = SoundManager.class.getResource("/sounds/" + fileName);
+        System.out.println("🔊 Loading sound: " + resource); // <- Thêm dòng này
         AudioClip clip = new AudioClip(resource.toString());
         clip.play();
     }
 }
+

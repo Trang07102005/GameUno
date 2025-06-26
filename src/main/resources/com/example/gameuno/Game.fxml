@@ -111,6 +111,16 @@
                   <!-- Nút Gọi UNO dưới HBox -->
                   <Button fx:id="unoButton" mnemonicParsing="false" onAction="#callUno" prefHeight="40.0" prefWidth="120.0" style="-fx-background-color: linear-gradient(to bottom, #FF6B6B, #FF5252);                         -fx-background-radius: 10; -fx-border-color: rgba(255,255,255,0.4);                         -fx-border-width: 2; -fx-border-radius: 10; -fx-cursor: hand;" text="🗣 Gọi UNO!" textFill="WHITE" />
 
+                  <!-- Nút Chơi lại -->
+                  <Button fx:id="replayButton"
+                          text="🔁 Chơi lại"
+                          visible="false"
+                          onAction="#handleReplay"
+                          style="-fx-background-color: linear-gradient(to bottom, #4CAF50, #2E7D32);
+               -fx-background-radius: 10; -fx-text-fill: white;
+               -fx-font-weight: bold; -fx-cursor: hand;"
+                          prefWidth="140" prefHeight="40" />
+
                </children>
                <padding>
                   <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
