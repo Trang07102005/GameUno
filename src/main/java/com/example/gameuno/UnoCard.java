@@ -1,5 +1,7 @@
 package com.example.gameuno;
 
+import javax.swing.*;
+
 public class UnoCard {
 
     public enum Color {
@@ -58,6 +60,19 @@ public class UnoCard {
     public static UnoCard fromString(String s) {
         String[] parts = s.trim().split(" ");
         return new UnoCard(UnoCard.Color.valueOf(parts[0]), UnoCard.Value.valueOf(parts[1]));
+    }
+
+    public String showColorSelection() {
+        Object[] options = {"Đỏ", "Xanh", "Vàng", "Xanh lá"};
+        int choice = JOptionPane.showOptionDialog(null, "Chọn màu:", "Chọn màu",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+        switch (choice) {
+            case 0: return "Red";
+            case 1: return "Blue";
+            case 2: return "Yellow";
+            case 3: return "Green";
+            default: return "Red"; // Mặc định
+        }
     }
 
 }

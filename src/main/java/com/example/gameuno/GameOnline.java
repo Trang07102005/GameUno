@@ -9,6 +9,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.Modality;
+import javafx.geometry.Pos;
 
 import java.io.IOException;
 import java.util.*;
@@ -90,36 +92,100 @@ public class GameOnline {
                     Platform.runLater(() -> handleServer(msg));
                 }
             } catch (IOException e) {
-                Platform.runLater(() -> gameStatusLabel.setText("❌ Mất kết nối: " + e.getMessage()));
+                Platform.runLater(() -> showGameDialog("❌ Mất kết nối: " + e.getMessage(), false, myName));
             }
         }).start();
+    }
+
+    private void showGameDialog(String message, boolean isWin, String winnerName) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.initOwner(exitButton.getScene().getWindow());
+        dialog.setTitle(isWin ? "Chiến thắng!" : "Thua cuộc");
+
+        StackPane dialogPane = new StackPane();
+        dialogPane.setStyle("-fx-background-color: rgba(0, 0, 0, 0.8);");
+
+        Label messageLabel = new Label();
+        messageLabel.setAlignment(Pos.CENTER);
+        messageLabel.setWrapText(true);
+
+        if (isWin) {
+            messageLabel.setText("🏆 " + winnerName + " đã chiến thắng!");
+            messageLabel.setStyle("-fx-font-size: 24px; -fx-text-fill: gold; -fx-background-color: rgba(0,0,0,0.6); -fx-padding: 20px; -fx-border-radius: 10px; -fx-background-radius: 10px;");
+        } else {
+            messageLabel.setText("😢 Bạn đã thua.\nNgười chiến thắng là: " + winnerName);
+            messageLabel.setStyle("-fx-font-size: 22px; -fx-text-fill: red; -fx-background-color: rgba(255,255,255,0.8); -fx-padding: 20px; -fx-border-radius: 10px; -fx-background-radius: 10px;");
+        }
+
+        Button okButton = new Button("Quay lại menu");
+        okButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px 20px; -fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;");
+        okButton.setOnAction(e -> {
+            dialog.close();
+            handleExit();
+        });
+
+        VBox vbox = new VBox(20, messageLabel, okButton);
+        vbox.setAlignment(Pos.CENTER);
+
+        dialogPane.getChildren().add(vbox);
+        Scene dialogScene = new Scene(dialogPane, 400, 250);
+        dialog.setScene(dialogScene);
+        dialog.setResizable(false);
+        dialog.show();
+    }
+
+    private void showEndGameDialog(String winnerName) {
+        boolean isWin = winnerName.equals(myName);
+        String message = isWin ? "Bạn đã thắng!" : "Bạn đã thua.";
+        showGameDialog(message, isWin, winnerName);
+    }
+
+
+
+    private void showNoCardsNotification() {
+        GamePanel gamePanel = new GamePanel(); // Giả sử bạn có cách truy cập GamePanel
+        gamePanel.showNotification("🎉 Bạn không còn lá bài! Chờ kết quả ván đấu...");
     }
 
     private void handleServer(String msg) {
         if (gameOver) return;
 
+        // --------- XỬ LÝ LƯỢT CHƠI HIỆN TẠI ---------
         if (msg.startsWith("CURRENT_PLAYER:")) {
-            int serverPlayer = Integer.parseInt(msg.split(":" )[1]);
+            int serverPlayer = Integer.parseInt(msg.split(":")[1]);
             currentPlayer = serverPlayer - 1;
+            boolean isMyTurn = (currentPlayer == myIndex);
+
             currentPlayerLabel.setText("Lượt: " + playerNames.get(currentPlayer));
-            if (currentPlayer == myIndex) {
-                gameStatusLabel.setText("👉 Tới lượt bạn!");
+            gameStatusLabel.setText(isMyTurn ? "👉 Tới lượt bạn!" : "👉 Tới lượt " + playerNames.get(currentPlayer));
+            gameStatusLabel.setStyle("");
+
+            if (isMyTurn) {
+                // Kiểm tra thua vì quá số lá
                 if (myHand.size() > 15) {
-                    gameStatusLabel.setText("❌ Bạn có quá 15 lá → Bị xử thua!");
-                    client.send("GAME_OVER:" + playerNames.get((myIndex + 1) % numberOfPlayers));
+                    String winner = playerNames.get((myIndex + 1) % numberOfPlayers);
+                    showEndGameDialog(winner);
+                    client.send("GAME_OVER:" + winner);
                     gameOver = true;
-                } else if (drawStack > 0 && !hasStackableCard()) {
+                }
+                // Tự động bốc nếu bị cộng dồn và không có bài chồng
+                else if (drawStack > 0 && !hasStackableCard()) {
                     gameStatusLabel.setText("💥 Bạn bị cộng " + drawStack + " lá!");
                     client.send("DRAW_CARD:" + myName);
                 }
-            } else {
-                gameStatusLabel.setText("👉 Tới lượt " + playerNames.get(currentPlayer));
             }
-        } else if (msg.startsWith("CURRENT_CARD:")) {
-            String[] p = msg.split(":" )[1].split(",");
+        }
+
+        // --------- CẬP NHẬT BÀI HIỆN TẠI ---------
+        else if (msg.startsWith("CURRENT_CARD:")) {
+            String[] p = msg.split(":")[1].split(",");
             UnoCard card = new UnoCard(UnoCard.Color.valueOf(p[0]), UnoCard.Value.valueOf(p[1]));
             updateCurrentCardView(card);
-        } else if (msg.startsWith("PLAY_CARD:")) {
+        }
+
+        // --------- NGƯỜI CHƠI ĐÁNH BÀI ---------
+        else if (msg.startsWith("PLAY_CARD:")) {
             try {
                 String[] parts = msg.split(":", 2);
                 String[] payload = parts[1].split(" ", 2);
@@ -131,6 +197,7 @@ public class GameOnline {
 
                 UnoCard card = new UnoCard(UnoCard.Color.valueOf(cardData[0]), UnoCard.Value.valueOf(cardData[1]));
 
+                // Xử lý cộng dồn
                 if (card.getValue() == UnoCard.Value.DrawTwo || card.getValue() == UnoCard.Value.WildDrawFour) {
                     drawStackType = card.getValue();
                     drawStack += (card.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
@@ -141,6 +208,7 @@ public class GameOnline {
 
                 int idx = playerNames.indexOf(name);
                 if (idx == myIndex) {
+                    // Bỏ bài ở tay mình
                     if (pendingCard != null && pendingButton != null) {
                         myHand.remove(pendingCard);
                         bottomPlayer.getChildren().remove(pendingButton);
@@ -148,9 +216,8 @@ public class GameOnline {
                         pendingButton = null;
 
                         if (myHand.isEmpty()) {
-                            gameStatusLabel.setText("🏆 Bạn đã thắng ván này!");
+                            showNoCardsNotification();
                             client.send("GAME_OVER:" + myName);
-                            gameOver = true;
                         }
                     }
                 } else {
@@ -162,14 +229,18 @@ public class GameOnline {
 
                 updateCurrentCardView(card);
                 updatePlayerLabels();
+
             } catch (Exception e) {
-                gameStatusLabel.setText("❗ Lỗi xử lý PLAY_CARD");
-                e.printStackTrace();
+                showGameDialog("❗ Lỗi xử lý PLAY_CARD", false, myName);
             }
-        } else if (msg.startsWith("DRAW_CARD:")) {
-            String name = msg.split(":" )[1];
+        }
+
+        // --------- NGƯỜI CHƠI BỐC BÀI ---------
+        else if (msg.startsWith("DRAW_CARD:")) {
+            String name = msg.split(":")[1];
             int idx = playerNames.indexOf(name);
             int drawCount = (drawStack > 0) ? drawStack : 1;
+
             if (idx == myIndex) {
                 for (int i = 0; i < drawCount; i++) {
                     UnoCard drawn = localDeck.drawCard();
@@ -180,8 +251,9 @@ public class GameOnline {
                 drawStackType = null;
 
                 if (myHand.size() > 15) {
-                    gameStatusLabel.setText("❌ Bạn có quá 15 lá → Bị xử thua!");
-                    client.send("GAME_OVER:" + playerNames.get((myIndex + 1) % numberOfPlayers));
+                    String winner = playerNames.get((myIndex + 1) % numberOfPlayers);
+                    showEndGameDialog(winner);
+                    client.send("GAME_OVER:" + winner);
                     gameOver = true;
                 }
             } else {
@@ -190,16 +262,33 @@ public class GameOnline {
                     addFaceDown(idx);
                 }
             }
+
             updatePlayerLabels();
-        } else if (msg.startsWith("CALL_UNO:")) {
-            String name = msg.split(":" )[1];
+        }
+
+        // --------- NGƯỜI CHƠI KÊU UNO ---------
+        else if (msg.startsWith("CALL_UNO:")) {
+            String name = msg.split(":")[1];
             gameStatusLabel.setText("🗣️ " + name + " đã kêu UNO!");
-        } else if (msg.startsWith("GAME_OVER:")) {
-            String winner = msg.split(":" )[1];
-            gameStatusLabel.setText("🏆 " + winner + " đã thắng!");
+            gameStatusLabel.setStyle("");
+        }
+
+        // --------- GAME KẾT THÚC ---------
+        else if (msg.startsWith("GAME_OVER:")) {
+            String winner = msg.split(":")[1];
+            showEndGameDialog(winner); // ✅ dùng giao diện mới
             gameOver = true;
         }
+
+        // --------- THÔNG BÁO HẾT BÀI ---------
+        else if (msg.startsWith("NO_CARDS:")) {
+            String name = msg.split(":")[1];
+            if (name.equals(myName)) {
+                showNoCardsNotification();
+            }
+        }
     }
+
 
     private boolean hasStackableCard() {
         for (UnoCard c : myHand) {
@@ -213,6 +302,7 @@ public class GameOnline {
         if (gameOver) return;
         if (currentPlayer != myIndex) {
             gameStatusLabel.setText("❌ Không phải lượt của bạn!");
+            gameStatusLabel.setStyle(""); // Reset style
             return;
         }
         client.send("DRAW_CARD:" + myName);
@@ -239,6 +329,7 @@ public class GameOnline {
         if (gameOver) return;
         if (currentPlayer != myIndex) {
             gameStatusLabel.setText("❌ Không phải lượt của bạn!");
+            gameStatusLabel.setStyle(""); // Reset style
             return;
         }
 
@@ -249,6 +340,7 @@ public class GameOnline {
 
         if (!valid) {
             gameStatusLabel.setText("❌ Thẻ không hợp lệ!");
+            gameStatusLabel.setStyle(""); // Reset style
             return;
         }
 

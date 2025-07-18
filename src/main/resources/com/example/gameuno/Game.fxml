@@ -19,6 +19,7 @@
 
 <AnchorPane prefHeight="700.0" prefWidth="1000.0" style="-fx-background-color: linear-gradient(to bottom, #ff6b6b, #4ecdc4);" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.gameuno.Game">
 
+
    <effect>
       <InnerShadow>
          <color>
@@ -182,6 +183,7 @@
                </children>
             </VBox>
          </left>
+
 
       </BorderPane>
    </children>
