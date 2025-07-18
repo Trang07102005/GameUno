@@ -45,8 +45,10 @@ public class GameOnline {
 
     @FXML
     public void initialize() {
+        // Khởi tạo danh sách bài của đối thủ
         for (int i = 0; i < 4; i++) opponentHands[i] = new ArrayList<>();
 
+        // Thiết lập hình ảnh cho nút bốc bài
         Image img = new Image(getClass().getResource("/cards/Back.png").toExternalForm());
         ImageView imgView = new ImageView(img);
         imgView.setFitWidth(60);
@@ -70,6 +72,7 @@ public class GameOnline {
         leftPlayerContainer.setVisible(numberOfPlayers >= 3);
         rightPlayerContainer.setVisible(numberOfPlayers == 4);
 
+        // Khởi tạo bài cho đối thủ
         for (int i = 0; i < numberOfPlayers; i++) {
             if (i != myIndex) {
                 for (int j = 0; j < 7; j++) {
@@ -105,18 +108,11 @@ public class GameOnline {
 
         StackPane dialogPane = new StackPane();
         dialogPane.setStyle("-fx-background-color: rgba(0, 0, 0, 0.8);");
-
         Label messageLabel = new Label();
         messageLabel.setAlignment(Pos.CENTER);
         messageLabel.setWrapText(true);
-
-        if (isWin) {
-            messageLabel.setText("🏆 " + winnerName + " đã chiến thắng!");
-            messageLabel.setStyle("-fx-font-size: 24px; -fx-text-fill: gold; -fx-background-color: rgba(0,0,0,0.6); -fx-padding: 20px; -fx-border-radius: 10px; -fx-background-radius: 10px;");
-        } else {
-            messageLabel.setText("😢 Bạn đã thua.\nNgười chiến thắng là: " + winnerName);
-            messageLabel.setStyle("-fx-font-size: 22px; -fx-text-fill: red; -fx-background-color: rgba(255,255,255,0.8); -fx-padding: 20px; -fx-border-radius: 10px; -fx-background-radius: 10px;");
-        }
+        messageLabel.setText(message);
+        messageLabel.setStyle(isWin ? "-fx-font-size: 24px; -fx-text-fill: gold;" : "-fx-font-size: 22px; -fx-text-fill: red;");
 
         Button okButton = new Button("Quay lại menu");
         okButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px 20px; -fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;");
@@ -127,7 +123,6 @@ public class GameOnline {
 
         VBox vbox = new VBox(20, messageLabel, okButton);
         vbox.setAlignment(Pos.CENTER);
-
         dialogPane.getChildren().add(vbox);
         Scene dialogScene = new Scene(dialogPane, 400, 250);
         dialog.setScene(dialogScene);
@@ -137,15 +132,18 @@ public class GameOnline {
 
     private void showEndGameDialog(String winnerName) {
         boolean isWin = winnerName.equals(myName);
-        String message = isWin ? "Bạn đã thắng!" : "Bạn đã thua.";
+        String message = isWin ? "🏆 Bạn đã chiến thắng!" : "😢 Bạn đã thua.";
         showGameDialog(message, isWin, winnerName);
     }
 
 
-
     private void showNoCardsNotification() {
-        GamePanel gamePanel = new GamePanel(); // Giả sử bạn có cách truy cập GamePanel
-        gamePanel.showNotification("🎉 Bạn không còn lá bài! Chờ kết quả ván đấu...");
+        // Hiển thị thông báo khi không còn lá bài nào
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Thông báo");
+        alert.setHeaderText(null);
+        alert.setContentText("🎉 Bạn không còn lá bài! Chờ kết quả ván đấu...");
+        alert.showAndWait();
     }
 
     private void handleServer(String msg) {
@@ -289,7 +287,6 @@ public class GameOnline {
         }
     }
 
-
     private boolean hasStackableCard() {
         for (UnoCard c : myHand) {
             if (c.getValue() == drawStackType) return true;
@@ -339,8 +336,8 @@ public class GameOnline {
                 || (drawStack > 0 && card.getValue() == drawStackType);
 
         if (!valid) {
-            gameStatusLabel.setText("❌ Thẻ không hợp lệ!");
-            gameStatusLabel.setStyle(""); // Reset style
+            // Hiển thị thông báo khi thẻ không hợp lệ
+            showInvalidCardNotification();
             return;
         }
 
@@ -410,5 +407,14 @@ public class GameOnline {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    // Phương thức hiển thị thông báo khi không có lá bài hợp lệ
+    private void showInvalidCardNotification() {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("CẢNH BÁO");
+        alert.setHeaderText("KHÔNG CÓ LÁ BÀI HỢP LỆ");
+        alert.setContentText("Bạn không có lá bài nào phù hợp với lá bài hiện tại.\nVui lòng bốc thêm bài hoặc nhấn UNO nếu chỉ còn 1 lá!");
+        alert.showAndWait();
     }
 }
