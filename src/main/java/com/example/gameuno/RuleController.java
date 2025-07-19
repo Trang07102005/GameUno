@@ -14,5 +14,4 @@ public class RuleController {
         Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
         stage.close();
     }
-
 }

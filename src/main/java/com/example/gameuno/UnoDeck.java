@@ -18,6 +18,7 @@ public class UnoDeck {
      * Tạo 108 lá bài đầy đủ theo quy tắc PascalCase.
      */
     private void initializeDeck() {
+        cards.clear(); // Đảm bảo danh sách rỗng trước khi khởi tạo
         UnoCard.Color[] colors = {
                 UnoCard.Color.Red,
                 UnoCard.Color.Yellow,
@@ -59,10 +60,20 @@ public class UnoDeck {
     }
 
     /**
-     * Rút 1 lá từ bộ bài.
+     * Kiểm tra xem bộ bài có rỗng không.
+     */
+    public boolean isEmpty() {
+        return cards.isEmpty();
+    }
+
+    /**
+     * Rút 1 lá từ bộ bài, tái tạo bộ bài nếu rỗng.
      */
     public UnoCard drawCard() {
-        if (cards.isEmpty()) return null;
+        if (isEmpty()) {
+            initializeDeck();
+            shuffle();
+        }
         return cards.remove(0);
     }
 

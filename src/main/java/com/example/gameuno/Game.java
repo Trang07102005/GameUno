@@ -14,6 +14,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.*;
 
 
 import java.io.IOException;
@@ -221,10 +222,15 @@ public class Game {
 
             unoCalled = false;
             nextTurn();
-
         } else {
-            gameStatusLabel.setText("❌ Thẻ không hợp lệ!");
+            if (!hasValidCard()) {
+                gameStatusLabel.setText("❌ Không có lá nào hợp lệ! Bạn phải bốc bài.");
+                showNoPlayableCardNotification(); // Cảnh báo bằng Alert
+            } else {
+                gameStatusLabel.setText("❌ Thẻ không hợp lệ!");
+            }
         }
+
     }
 
     private void handleWild(UnoCard card) {
@@ -278,17 +284,30 @@ public class Game {
 
     private void nextTurn() {
         currentPlayer = getNextPlayer();
+
         if (currentPlayer == 1) {
             gameStatusLabel.setText("👉 Tới lượt " + myName);
             currentPlayerLabel.setText("Lượt: " + myName);
-            startTurnTimer(); // 🟢 Bắt đầu đếm ngược cho người chơi
-        } else {
+
+            // Nếu không có lá bài hợp lệ, thông báo và khuyến nghị bốc
+            if (!hasValidCard()) {
+                gameStatusLabel.setText("❌ Bạn không có lá hợp lệ. Vui lòng rút bài!");
+
+                // Đảm bảo Alert hiển thị sau khi giao diện JavaFX ổn định
+                javafx.application.Platform.runLater(() -> {
+                    showNoPlayableCardNotification(); // 🟢 Hiện khung cảnh báo luôn
+                });
+            }
+
+            startTurnTimer();
+    } else {
             currentPlayerLabel.setText("Lượt: " + playerNames.get(currentPlayer - 1));
             PauseTransition delay = new PauseTransition(Duration.seconds(1.5));
             delay.setOnFinished(e -> aiTurn(currentPlayer));
             delay.play();
         }
     }
+
 
     // 👉 THÊM NGAY SAU ĐÂY:
     private void startTurnTimer() {
@@ -533,4 +552,29 @@ public class Game {
             ex.printStackTrace();
         }
     }
+    private boolean hasValidCard() {
+        for (UnoCard card : playerHand) {
+            if (comboType != null) {
+                if (card.getValue() == comboType) return true; // chỉ được đánh đúng loại combo
+            } else {
+                if (card.getColor() == currentCard.getColor()
+                        || card.getValue() == currentCard.getValue()
+                        || card.getColor() == UnoCard.Color.Wild) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Hiển thị cảnh báo khi không có lá bài nào hợp lệ
+    private void showNoPlayableCardNotification() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Không có lá bài hợp lệ");
+        alert.setHeaderText(null);
+        alert.setContentText("⚠️ Bạn không có lá bài nào phù hợp.\nVui lòng bốc bài.");
+        alert.showAndWait();
+    }
+
+
 }

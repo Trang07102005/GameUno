@@ -167,10 +167,17 @@ public class GameOnline {
                     client.send("GAME_OVER:" + winner);
                     gameOver = true;
                 }
-                // Tự động bốc nếu bị cộng dồn và không có bài chồng
+
+                // Nếu bị cộng dồn mà không có bài chồng
                 else if (drawStack > 0 && !hasStackableCard()) {
                     gameStatusLabel.setText("💥 Bạn bị cộng " + drawStack + " lá!");
                     client.send("DRAW_CARD:" + myName);
+                }
+
+                // ✅ Nếu không bị cộng dồn mà không có bài hợp lệ
+                else if (drawStack == 0 && !hasPlayableCard()) {
+                    gameStatusLabel.setText("⚠️ Bạn không có lá bài hợp lệ!");
+                    showNoPlayableCardNotification();
                 }
             }
         }
@@ -417,4 +424,25 @@ public class GameOnline {
         alert.setContentText("Bạn không có lá bài nào phù hợp với lá bài hiện tại.\nVui lòng bốc thêm bài hoặc nhấn UNO nếu chỉ còn 1 lá!");
         alert.showAndWait();
     }
+    // Kiểm tra xem có lá bài nào có thể đánh không
+    private boolean hasPlayableCard() {
+        for (UnoCard card : myHand) {
+            boolean valid = card.getColor() == currentCard.getColor()
+                    || card.getValue() == currentCard.getValue()
+                    || card.getColor() == UnoCard.Color.Wild
+                    || (drawStack > 0 && card.getValue() == drawStackType);
+            if (valid) return true;
+        }
+        return false;
+    }
+
+    // Hiển thị cảnh báo khi không có lá bài nào hợp lệ
+    private void showNoPlayableCardNotification() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Không có lá bài hợp lệ");
+        alert.setHeaderText(null);
+        alert.setContentText("⚠️ Bạn không có lá bài nào phù hợp.\nVui lòng bốc bài.");
+        alert.showAndWait();
+    }
+
 }
