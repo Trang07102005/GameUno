@@ -136,7 +136,6 @@ public class GameOnline {
         showGameDialog(message, isWin, winnerName);
     }
 
-
     private void showNoCardsNotification() {
         // Hiển thị thông báo khi không còn lá bài nào
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -202,18 +201,9 @@ public class GameOnline {
 
                 UnoCard card = new UnoCard(UnoCard.Color.valueOf(cardData[0]), UnoCard.Value.valueOf(cardData[1]));
 
-                // Xử lý cộng dồn
-                if (card.getValue() == UnoCard.Value.DrawTwo || card.getValue() == UnoCard.Value.WildDrawFour) {
-                    drawStackType = card.getValue();
-                    drawStack += (card.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
-                } else {
-                    drawStack = 0;
-                    drawStackType = null;
-                }
-
                 int idx = playerNames.indexOf(name);
                 if (idx == myIndex) {
-                    // Bỏ bài ở tay mình
+                    // Người chơi là mình
                     if (pendingCard != null && pendingButton != null) {
                         myHand.remove(pendingCard);
                         bottomPlayer.getChildren().remove(pendingButton);
@@ -226,9 +216,19 @@ public class GameOnline {
                         }
                     }
                 } else {
+                    // Người chơi là đối thủ
                     if (!opponentHands[idx].isEmpty()) {
                         opponentHands[idx].remove(0);
                         removeFaceDown(idx);
+                    }
+
+                    // ✅ Chỉ cộng dồn khi người đánh không phải mình
+                    if (card.getValue() == UnoCard.Value.DrawTwo || card.getValue() == UnoCard.Value.WildDrawFour) {
+                        drawStackType = card.getValue();
+                        drawStack += (card.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
+                    } else {
+                        drawStack = 0;
+                        drawStackType = null;
                     }
                 }
 
@@ -239,6 +239,7 @@ public class GameOnline {
                 showGameDialog("❗ Lỗi xử lý PLAY_CARD", false, myName);
             }
         }
+
 
         // --------- NGƯỜI CHƠI BỐC BÀI ---------
         else if (msg.startsWith("DRAW_CARD:")) {
@@ -424,6 +425,7 @@ public class GameOnline {
         alert.setContentText("Bạn không có lá bài nào phù hợp với lá bài hiện tại.\nVui lòng bốc thêm bài hoặc nhấn UNO nếu chỉ còn 1 lá!");
         alert.showAndWait();
     }
+
     // Kiểm tra xem có lá bài nào có thể đánh không
     private boolean hasPlayableCard() {
         for (UnoCard card : myHand) {
@@ -444,5 +446,4 @@ public class GameOnline {
         alert.setContentText("⚠️ Bạn không có lá bài nào phù hợp.\nVui lòng bốc bài.");
         alert.showAndWait();
     }
-
 }

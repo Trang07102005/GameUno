@@ -114,7 +114,7 @@ public class UnoServer {
 
                         currentCard = played;
                         System.out.println("🔥 " + playerName + " đánh: " + currentCard);
-                        broadcast("PLAY_CARD:" + playerName + " " + cardParts[0] + "," + cardParts[1]);
+                        broadcast("PLAY_CARD:" + this.playerName + " " + cardParts[0] + "," + cardParts[1]);
                         nextPlayer();
 
                     } catch (Exception e) {

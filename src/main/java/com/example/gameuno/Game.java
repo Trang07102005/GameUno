@@ -259,6 +259,7 @@ public class Game {
             addFaceDown(playerIndex);
         }
         updatePlayerLabels();
+
     }
 
     private List<UnoCard> getHand(int index) {
