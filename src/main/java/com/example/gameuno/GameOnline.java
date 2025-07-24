@@ -133,6 +133,8 @@ public class GameOnline {
     private void showEndGameDialog(String winnerName) {
         boolean isWin = winnerName.equals(myName);
         String message = isWin ? "🏆 Bạn đã chiến thắng!" : "😢 Bạn đã thua.";
+        GameLogger.logResult(winnerName, numberOfPlayers, myHand.size(), playerNames);
+
         showGameDialog(message, isWin, winnerName);
     }
 
