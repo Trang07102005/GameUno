@@ -16,7 +16,6 @@ import javafx.util.Duration;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
 
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +48,6 @@ public class Game {
     private boolean[] aiUno = new boolean[5];
 
     private PauseTransition turnTimer;
-
 
     private int penaltyStack = 0;
     private UnoCard.Value comboType = null;
@@ -92,6 +90,8 @@ public class Game {
 
         unoCalled = false;
 
+        GameLogger.startGame(playerNames); // Log game start
+
         leftPlayerContainer.setVisible(numberOfPlayers >= 3);
         rightPlayerContainer.setVisible(numberOfPlayers == 4);
 
@@ -117,8 +117,7 @@ public class Game {
             gameStatusLabel.setText("❌ Không phải lượt của bạn!");
             return;
         }
-        if (turnTimer != null) turnTimer.stop(); // ⏹ Khi người chơi rút bài
-
+        if (turnTimer != null) turnTimer.stop();
 
         if (comboType != null && hasComboCard(playerHand)) {
             gameStatusLabel.setText("❌ Bạn phải đánh lá " + comboType + " để chồng bài hoặc rút phạt!");
@@ -133,6 +132,7 @@ public class Game {
         }
         updateDeckCount();
 
+        GameLogger.logMove(myName, "đã bốc " + drawCount + " lá"); // Log draw action
         if (comboType != null) {
             gameStatusLabel.setText("💥 " + myName + " bốc " + penaltyStack + " lá do combo!");
             comboType = null;
@@ -155,8 +155,10 @@ public class Game {
     @FXML
     private void callUno() {
         unoCalled = true;
+        GameLogger.logMove(myName, "đã kêu UNO!"); // Log UNO call
         gameStatusLabel.setText("🗣️ " + myName + " đã kêu UNO!");
     }
+
     private void addCardToHand(UnoCard card) {
         String imagePath = getClass().getResource(card.getImagePath()).toExternalForm();
         ImageView imageView = new ImageView(imagePath);
@@ -176,13 +178,12 @@ public class Game {
             gameStatusLabel.setText("❌ Không phải lượt của bạn!");
             return;
         }
-        if (turnTimer != null) turnTimer.stop(); // ⏹ Khi người chơi đánh bài
-
+        if (turnTimer != null) turnTimer.stop();
 
         if (card.getColor() == currentCard.getColor()
                 || card.getValue() == currentCard.getValue()
                 || card.getColor() == UnoCard.Color.Wild) {
-
+            GameLogger.logMove(myName, "đã đánh lá " + card.getColor() + " " + card.getValue()); // Log play action
             if (card.getValue() == UnoCard.Value.Wild || card.getValue() == UnoCard.Value.WildDrawFour) {
                 handleWild(card);
             }
@@ -200,6 +201,7 @@ public class Game {
             } else if (card.getValue() == UnoCard.Value.Reverse) {
                 direction *= -1;
                 gameStatusLabel.setText("🔄 Đã đảo chiều!");
+                GameLogger.logMove(myName, "đã đánh Reverse"); // Log reverse action
             }
 
             currentCard = card;
@@ -214,6 +216,7 @@ public class Game {
                     playerHand.add(penalty);
                     addCardToHand(penalty);
                 }
+                GameLogger.logMove(myName, "quên kêu UNO! Bị phạt 2 lá"); // Log penalty
                 gameStatusLabel.setText("⚠️ " + myName + " quên kêu UNO! Bị phạt 2 lá!");
             } else if (playerHand.isEmpty()) {
                 endGame(myName);
@@ -225,12 +228,11 @@ public class Game {
         } else {
             if (!hasValidCard()) {
                 gameStatusLabel.setText("❌ Không có lá nào hợp lệ! Bạn phải bốc bài.");
-                showNoPlayableCardNotification(); // Cảnh báo bằng Alert
+                showNoPlayableCardNotification();
             } else {
                 gameStatusLabel.setText("❌ Thẻ không hợp lệ!");
             }
         }
-
     }
 
     private void handleWild(UnoCard card) {
@@ -240,15 +242,9 @@ public class Game {
         dialog.setHeaderText(myName + " đã đánh Wild");
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(color -> {
-            switch (color) {
-                case "Red" -> card.setDynamicColor(UnoCard.Color.Red);
-                case "Yellow" -> card.setDynamicColor(UnoCard.Color.Yellow);
-                case "Green" -> card.setDynamicColor(UnoCard.Color.Green);
-                case "Blue" -> card.setDynamicColor(UnoCard.Color.Blue);
-            }
             card.setDynamicColor(UnoCard.Color.valueOf(color));
             gameStatusLabel.setText("🎨 Bạn chọn màu " + color.toUpperCase());
-
+            GameLogger.logMove(myName, "đã chọn màu " + color + " cho Wild"); // Log wild color choice
         });
     }
 
@@ -258,8 +254,8 @@ public class Game {
             hand.add(deck.drawCard());
             addFaceDown(playerIndex);
         }
+        GameLogger.logMove(playerNames.get(playerIndex - 1), "bị phạt " + cards + " lá"); // Log penalty
         updatePlayerLabels();
-
     }
 
     private List<UnoCard> getHand(int index) {
@@ -290,18 +286,13 @@ public class Game {
             gameStatusLabel.setText("👉 Tới lượt " + myName);
             currentPlayerLabel.setText("Lượt: " + myName);
 
-            // Nếu không có lá bài hợp lệ, thông báo và khuyến nghị bốc
             if (!hasValidCard()) {
                 gameStatusLabel.setText("❌ Bạn không có lá hợp lệ. Vui lòng rút bài!");
-
-                // Đảm bảo Alert hiển thị sau khi giao diện JavaFX ổn định
-                javafx.application.Platform.runLater(() -> {
-                    showNoPlayableCardNotification(); // 🟢 Hiện khung cảnh báo luôn
-                });
+                javafx.application.Platform.runLater(this::showNoPlayableCardNotification);
             }
 
             startTurnTimer();
-    } else {
+        } else {
             currentPlayerLabel.setText("Lượt: " + playerNames.get(currentPlayer - 1));
             PauseTransition delay = new PauseTransition(Duration.seconds(1.5));
             delay.setOnFinished(e -> aiTurn(currentPlayer));
@@ -309,20 +300,19 @@ public class Game {
         }
     }
 
-
-    // 👉 THÊM NGAY SAU ĐÂY:
     private void startTurnTimer() {
         if (turnTimer != null) {
             turnTimer.stop();
         }
 
-        turnTimer = new PauseTransition(Duration.seconds(10)); // ⏱ 10 giây mỗi lượt
+        turnTimer = new PauseTransition(Duration.seconds(10));
         turnTimer.setOnFinished(e -> {
             if (currentPlayer == 1) {
                 gameStatusLabel.setText("⌛ Hết giờ! Bạn bị rút 1 lá!");
                 UnoCard card = deck.drawCard();
                 playerHand.add(card);
                 addCardToHand(card);
+                GameLogger.logMove(myName, "hết giờ, bị rút 1 lá"); // Log timeout
                 updateDeckCount();
                 nextTurn();
             }
@@ -334,7 +324,6 @@ public class Game {
         List<UnoCard> hand = getHand(index);
         UnoCard chosen = null;
 
-        // Tìm lá có thể đánh
         for (UnoCard card : hand) {
             if (card.getColor() == currentCard.getColor()
                     || card.getValue() == currentCard.getValue()
@@ -347,20 +336,19 @@ public class Game {
         if (chosen != null) {
             hand.remove(chosen);
             removeFaceDown(index);
+            GameLogger.logMove(playerNames.get(index - 1), "đã đánh lá " + chosen.getColor() + " " + chosen.getValue()); // Log AI play
 
-            // Nếu là lá Wild hoặc WildDrawFour, chọn màu ngẫu nhiên
             if (chosen.getValue() == UnoCard.Value.Wild || chosen.getValue() == UnoCard.Value.WildDrawFour) {
                 UnoCard.Color[] colors = {UnoCard.Color.Red, UnoCard.Color.Yellow, UnoCard.Color.Green, UnoCard.Color.Blue};
-                UnoCard.Color picked = colors[(int) (Math.random() * 4)];
-                chosen.setDynamicColor(colors[new Random().nextInt(colors.length)]);
+                UnoCard.Color picked = colors[new Random().nextInt(colors.length)];
+                chosen.setDynamicColor(picked);
+                GameLogger.logMove(playerNames.get(index - 1), "đã chọn màu " + picked + " cho Wild"); // Log AI wild color
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh Wild và chọn màu " + chosen.getColor());
-
             }
 
             currentCard = chosen;
             updateCurrentCardView(chosen);
 
-            // Combo: DrawTwo / WildDrawFour
             if (chosen.getValue() == UnoCard.Value.DrawTwo || chosen.getValue() == UnoCard.Value.WildDrawFour) {
                 if (comboType == null) {
                     comboType = chosen.getValue();
@@ -372,24 +360,24 @@ public class Game {
                 return;
             }
 
-            // Skip
             if (chosen.getValue() == UnoCard.Value.Skip) {
+                GameLogger.logMove(playerNames.get(index - 1), "đã đánh Skip"); // Log AI skip
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh Skip!");
                 skipNext();
                 return;
             }
 
-            // Reverse
             if (chosen.getValue() == UnoCard.Value.Reverse) {
                 direction *= -1;
+                GameLogger.logMove(playerNames.get(index - 1), "đã đánh Reverse"); // Log AI reverse
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh Reverse! Đổi chiều.");
             } else {
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " đánh " + chosen);
             }
 
-            // UNO
             if (hand.size() == 1 && !aiUno[index]) {
                 aiUno[index] = true;
+                GameLogger.logMove(playerNames.get(index - 1), "đã kêu UNO!"); // Log AI UNO
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " kêu UNO!");
                 PauseTransition unoPause = new PauseTransition(Duration.seconds(1));
                 unoPause.setOnFinished(e -> nextTurn());
@@ -397,21 +385,17 @@ public class Game {
                 return;
             }
 
-            // Thắng
             if (hand.isEmpty()) {
                 endGame(playerNames.get(index - 1));
                 return;
             }
-
-
         } else {
-            // Không đánh được => bốc bài
             int drawCount = (comboType != null) ? penaltyStack : 1;
             for (int i = 0; i < drawCount; i++) {
                 hand.add(deck.drawCard());
                 addFaceDown(index);
             }
-
+            GameLogger.logMove(playerNames.get(index - 1), "đã bốc " + drawCount + " lá"); // Log AI draw
             if (comboType != null) {
                 gameStatusLabel.setText("🤖 " + playerNames.get(index - 1) + " bốc " + penaltyStack + " lá combo!");
                 comboType = null;
@@ -422,12 +406,10 @@ public class Game {
         }
 
         updatePlayerLabels();
-
         PauseTransition delay = new PauseTransition(Duration.seconds(1));
         delay.setOnFinished(e -> nextTurn());
         delay.play();
     }
-
 
     private void updatePlayerLabels() {
         bottomPlayerLabel.setText(myName + " (" + playerHand.size() + ")");
@@ -466,19 +448,19 @@ public class Game {
         backImage.setFitHeight(80);
         return new StackPane(backImage);
     }
-    private void endGame(String winnerName) {
-        // Ngừng nhạc nền để tránh lấn át tiếng hiệu ứng
-        SoundManager.stopBGM();
 
+    private void endGame(String winnerName) {
+        SoundManager.stopBGM();
         if (winnerName.equals(myName)) {
-            SoundManager.playWin(); // 🥳 Thắng
+            SoundManager.playWin();
         } else {
-            SoundManager.playError(); // 😭 Thua
+            SoundManager.playError();
         }
 
+        GameLogger.logResult(winnerName, numberOfPlayers, playerHand.size(), playerNames); // Log game result
         gameStatusLabel.setText("🏆 " + winnerName + " đã thắng!");
 
-        replayButton.setVisible(true);  // Hiện nút chơi lại
+        replayButton.setVisible(true);
         replayButton.setOnAction(e -> {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("Game.fxml"));
@@ -496,9 +478,6 @@ public class Game {
         delay.play();
     }
 
-
-
-    // ➕ THÊM ở đây:
     public void resetGame() {
         deck = new UnoDeck();
         playerHand.clear();
@@ -529,7 +508,6 @@ public class Game {
         updateCurrentCardView(currentCard);
     }
 
-
     @FXML
     private void handleExit() {
         Stage stage = (Stage) exitButton.getScene().getWindow();
@@ -541,11 +519,9 @@ public class Game {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("Game.fxml"));
             Scene gameScene = new Scene(loader.load());
-
             Game newGameController = loader.getController();
-            newGameController.initPlayers(numberOfPlayers, playerNames);  // thiết lập lại người chơi
-            newGameController.resetGame();  // reset lại bài, trạng thái
-
+            newGameController.initPlayers(numberOfPlayers, playerNames);
+            newGameController.resetGame();
             Stage stage = (Stage) currentCardPane.getScene().getWindow();
             stage.setScene(gameScene);
             stage.setTitle("UNO - Ván mới");
@@ -553,10 +529,11 @@ public class Game {
             ex.printStackTrace();
         }
     }
+
     private boolean hasValidCard() {
         for (UnoCard card : playerHand) {
             if (comboType != null) {
-                if (card.getValue() == comboType) return true; // chỉ được đánh đúng loại combo
+                if (card.getValue() == comboType) return true;
             } else {
                 if (card.getColor() == currentCard.getColor()
                         || card.getValue() == currentCard.getValue()
@@ -568,7 +545,6 @@ public class Game {
         return false;
     }
 
-    // Hiển thị cảnh báo khi không có lá bài nào hợp lệ
     private void showNoPlayableCardNotification() {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Không có lá bài hợp lệ");
@@ -576,6 +552,4 @@ public class Game {
         alert.setContentText("⚠️ Bạn không có lá bài nào phù hợp.\nVui lòng bốc bài.");
         alert.showAndWait();
     }
-
-
 }
