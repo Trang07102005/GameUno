@@ -13,6 +13,7 @@ public class UnoServer {
     private static final List<String> playerNames = Collections.synchronizedList(new ArrayList<>());
     private static final Map<String, Integer> playerCardCounts = Collections.synchronizedMap(new HashMap<>());
     private static final Map<String, Boolean> calledUno = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<String, List<UnoCard>> playerHands = Collections.synchronizedMap(new HashMap<>());
     private static int expectedPlayers = 0;
     private static int currentPlayer = 1; // 1-based
     private static volatile boolean gameStarted = false;
@@ -56,7 +57,7 @@ public class UnoServer {
             try {
                 String line;
                 while (running && (line = in.readLine()) != null) {
-                    System.out.println("📩 " + line);
+                    System.out.println("📩 Nhận: " + line);
 
                     if (line.startsWith("PLAYER_COUNT:")) {
                         synchronized (clients) {
@@ -75,8 +76,9 @@ public class UnoServer {
                                 playerName = line.split(":")[1];
                                 playerIndex = playerNames.size();
                                 playerNames.add(playerName);
-                                playerCardCounts.put(playerName, 7); // Khởi tạo với 7 lá
-                                calledUno.put(playerName, false); // Khởi tạo trạng thái UNO
+                                playerCardCounts.put(playerName, 7);
+                                calledUno.put(playerName, false);
+                                playerHands.put(playerName, new ArrayList<>());
                                 System.out.println("✅ Đăng ký: " + playerName + " [slot " + playerIndex + "]");
                                 broadcast("WAITING_PLAYERS:" + (expectedPlayers - playerNames.size()));
                                 checkStartGame();
@@ -113,23 +115,13 @@ public class UnoServer {
                             UnoCard.Value value = UnoCard.Value.valueOf(cardParts[1]);
                             UnoCard played = new UnoCard(color, value);
 
-                            // Cập nhật số lá bài
+                            List<UnoCard> hand = playerHands.getOrDefault(playerName, new ArrayList<>());
+                            hand.removeIf(card -> card.getColor() == color && card.getValue() == value);
+
                             int currentCount = playerCardCounts.getOrDefault(playerName, 7);
                             currentCount--;
                             playerCardCounts.put(playerName, currentCount);
-
-                            // Kiểm tra UNO khi còn 1 lá
-                            if (currentCount == 1 && !calledUno.getOrDefault(playerName, false)) {
-                                System.out.println("⚠️ " + playerName + " chưa gọi UNO!");
-                                broadcast("INFO:UNO_NOT_CALLED:" + playerName);
-                                // Phạt rút 2 lá
-                                broadcast("DRAW_CARD:" + playerName + ":2");
-                                playerCardCounts.put(playerName, currentCount + 2);
-                                calledUno.put(playerName, false); // Reset trạng thái UNO
-                                broadcast("PLAYER_CARD_COUNT:" + playerName + ":" + playerCardCounts.get(playerName));
-                                nextPlayer();
-                                continue; // Bỏ qua việc đánh lá để xử lý phạt
-                            }
+                            System.out.println("📊 Cập nhật số lá bài: " + playerName + " -> " + currentCount);
 
                             currentCard = played;
                             System.out.println("🔥 " + playerName + " đánh: " + currentCard);
@@ -139,6 +131,25 @@ public class UnoServer {
                             if (currentCount == 0) {
                                 System.out.println("🏆 " + playerName + " hết bài!");
                                 broadcast("GAME_OVER:" + playerName);
+                                continue;
+                            }
+
+                            if (currentCount == 1 && !calledUno.getOrDefault(playerName, false)) {
+                                System.out.println("⚠️ " + playerName + " chưa gọi UNO!");
+                                broadcast("INFO:UNO_NOT_CALLED:" + playerName);
+                                StringBuilder cardsMsg = new StringBuilder();
+                                for (int i = 0; i < 2; i++) {
+                                    UnoCard drawn = deck.drawCard();
+                                    cardsMsg.append(drawn.getColor()).append(",").append(drawn.getValue());
+                                    if (i < 1) cardsMsg.append(";");
+                                    hand.add(drawn);
+                                }
+                                broadcast("DRAW_CARD:" + playerName + ":2:" + cardsMsg);
+                                playerCardCounts.put(playerName, currentCount + 2);
+                                calledUno.put(playerName, false);
+                                System.out.println("📊 Cập nhật số lá bài (phạt UNO): " + playerName + " -> " + (currentCount + 2));
+                                broadcast("PLAYER_CARD_COUNT:" + playerName + ":" + playerCardCounts.get(playerName));
+                                nextPlayer();
                                 continue;
                             }
 
@@ -159,23 +170,40 @@ public class UnoServer {
                                 String nextPlayerName = getNextPlayerName();
                                 nextPlayer();
                                 System.out.println("📤 " + nextPlayerName + " phải rút 2 lá!");
-                                broadcast("DRAW_CARD:" + nextPlayerName + ":2");
+                                StringBuilder cardsMsg = new StringBuilder();
+                                List<UnoCard> nextHand = playerHands.getOrDefault(nextPlayerName, new ArrayList<>());
+                                for (int i = 0; i < 2; i++) {
+                                    UnoCard drawn = deck.drawCard();
+                                    cardsMsg.append(drawn.getColor()).append(",").append(drawn.getValue());
+                                    if (i < 1) cardsMsg.append(";");
+                                    nextHand.add(drawn);
+                                }
+                                broadcast("DRAW_CARD:" + nextPlayerName + ":2:" + cardsMsg);
                                 playerCardCounts.put(nextPlayerName, playerCardCounts.getOrDefault(nextPlayerName, 7) + 2);
+                                System.out.println("📊 Cập nhật số lá bài: " + nextPlayerName + " -> " + playerCardCounts.get(nextPlayerName));
                                 broadcast("PLAYER_CARD_COUNT:" + nextPlayerName + ":" + playerCardCounts.get(nextPlayerName));
                                 nextPlayer();
                             } else if (value == UnoCard.Value.WildDrawFour) {
                                 String nextPlayerName = getNextPlayerName();
                                 nextPlayer();
                                 System.out.println("📤 " + nextPlayerName + " phải rút 4 lá!");
-                                broadcast("DRAW_CARD:" + nextPlayerName + ":4");
+                                StringBuilder cardsMsg = new StringBuilder();
+                                List<UnoCard> nextHand = playerHands.getOrDefault(nextPlayerName, new ArrayList<>());
+                                for (int i = 0; i < 4; i++) {
+                                    UnoCard drawn = deck.drawCard();
+                                    cardsMsg.append(drawn.getColor()).append(",").append(drawn.getValue());
+                                    if (i < 3) cardsMsg.append(";");
+                                    nextHand.add(drawn);
+                                }
+                                broadcast("DRAW_CARD:" + nextPlayerName + ":4:" + cardsMsg);
                                 playerCardCounts.put(nextPlayerName, playerCardCounts.getOrDefault(nextPlayerName, 7) + 4);
+                                System.out.println("📊 Cập nhật số lá bài: " + nextPlayerName + " -> " + playerCardCounts.get(nextPlayerName));
                                 broadcast("PLAYER_CARD_COUNT:" + nextPlayerName + ":" + playerCardCounts.get(nextPlayerName));
                                 nextPlayer();
                             } else {
                                 nextPlayer();
                             }
 
-                            // Reset trạng thái UNO nếu không còn 1 lá
                             if (currentCount > 1) {
                                 calledUno.put(playerName, false);
                             }
@@ -196,10 +224,18 @@ public class UnoServer {
                             continue;
                         }
                         System.out.println("📤 " + name + " rút " + drawCount + " lá!");
+                        StringBuilder cardsMsg = new StringBuilder();
+                        List<UnoCard> hand = playerHands.getOrDefault(name, new ArrayList<>());
+                        for (int i = 0; i < drawCount; i++) {
+                            UnoCard drawn = deck.drawCard();
+                            cardsMsg.append(drawn.getColor()).append(",").append(drawn.getValue());
+                            if (i < drawCount - 1) cardsMsg.append(";");
+                            hand.add(drawn);
+                        }
                         playerCardCounts.put(name, playerCardCounts.getOrDefault(name, 7) + drawCount);
-                        broadcast("DRAW_CARD:" + name + ":" + drawCount);
+                        System.out.println("📊 Cập nhật số lá bài: " + name + " -> " + playerCardCounts.get(name));
+                        broadcast("DRAW_CARD:" + name + ":" + drawCount + ":" + cardsMsg);
                         broadcast("PLAYER_CARD_COUNT:" + name + ":" + playerCardCounts.get(name));
-                        // Reset trạng thái UNO nếu rút bài
                         calledUno.put(name, false);
                         nextPlayer();
                     } else if (line.startsWith("CALL_UNO:")) {
@@ -209,6 +245,18 @@ public class UnoServer {
                         String winner = line.split(":")[1];
                         System.out.println("🏆 Trò chơi kết thúc, người thắng: " + winner);
                         broadcast("GAME_OVER:" + winner);
+                    } else if (line.startsWith("REQUEST_HAND:")) {
+                        String name = line.split(":")[1];
+                        if (name.equals(playerName)) {
+                            List<UnoCard> hand = playerHands.getOrDefault(name, new ArrayList<>());
+                            StringBuilder sb = new StringBuilder("HAND_UPDATE:");
+                            for (UnoCard card : hand) {
+                                sb.append(card.getColor()).append(",").append(card.getValue()).append(";");
+                            }
+                            out.println(sb.toString());
+                            out.flush();
+                            System.out.println("📊 Gửi danh sách lá bài cho " + name + ": " + sb);
+                        }
                     }
                 }
             } catch (IOException e) {
@@ -241,8 +289,10 @@ public class UnoServer {
                 List<UnoCard> hand = new ArrayList<>();
                 for (int j = 0; j < 7; j++) hand.add(deck.drawCard());
                 hands.add(hand);
-                playerCardCounts.put(playerNames.get(i), 7); // Cập nhật số lá bài
-                calledUno.put(playerNames.get(i), false); // Reset trạng thái UNO
+                playerCardCounts.put(playerNames.get(i), 7);
+                playerHands.put(playerNames.get(i), hand);
+                calledUno.put(playerNames.get(i), false);
+                System.out.println("📊 Khởi tạo số lá bài: " + playerNames.get(i) + " -> 7");
             }
 
             for (int i = 0; i < clients.size() && i < hands.size(); i++) {
@@ -252,6 +302,7 @@ public class UnoServer {
                 }
                 clients.get(i).out.println(sb);
                 clients.get(i).out.flush();
+                broadcast("PLAYER_CARD_COUNT:" + playerNames.get(i) + ":7");
             }
 
             currentPlayer = 1;
@@ -287,12 +338,22 @@ public class UnoServer {
                     playerNames.remove(playerName);
                     playerCardCounts.remove(playerName);
                     calledUno.remove(playerName);
+                    playerHands.remove(playerName);
                     System.out.println("🧹 Xoá [" + playerName + "]");
+                    expectedPlayers--;
                     broadcast("PLAYER_LEFT:" + playerName);
-                    if (playerNames.size() == 1 && gameStarted) {
+                    for (String name : playerNames) {
+                        broadcast("PLAYER_CARD_COUNT:" + name + ":" + playerCardCounts.get(name));
+                    }
+                    if (gameStarted && playerNames.size() == 1) {
                         String winner = playerNames.get(0);
                         System.out.println("🏆 Chỉ còn 1 người chơi, người thắng: " + winner);
                         broadcast("GAME_OVER:" + winner);
+                    } else if (gameStarted && playerNames.size() >= 2) {
+                        // Adjust currentPlayer if the disconnected player was the current player
+                        if (playerIndex + 1 == currentPlayer) {
+                            nextPlayer();
+                        }
                     }
                 }
                 clients.remove(this);

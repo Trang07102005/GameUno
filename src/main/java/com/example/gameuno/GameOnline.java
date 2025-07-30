@@ -40,7 +40,7 @@ public class GameOnline {
     private int myIndex;
     private int numberOfPlayers;
     private int currentPlayer;
-    private int activePlayers; // Số lượng người chơi còn lại
+    private int activePlayers;
 
     private UnoCard pendingCard;
     private Button pendingButton;
@@ -80,7 +80,7 @@ public class GameOnline {
 
     public void initPlayers(int numberOfPlayers, List<String> playerNames, UnoClientConnection client, String myName, List<UnoCard> myInitialHand, UnoCard firstCard) {
         this.numberOfPlayers = numberOfPlayers;
-        this.playerNames = new ArrayList<>(playerNames); // Sao chép để theo dõi
+        this.playerNames = new ArrayList<>(playerNames);
         this.activePlayers = playerNames.size();
         this.client = client;
         this.myName = myName;
@@ -94,9 +94,7 @@ public class GameOnline {
         currentCard = firstCard;
         updateCurrentCardView(firstCard);
 
-        leftPlayerContainer.setVisible(numberOfPlayers >= 3);
-        rightPlayerContainer.setVisible(numberOfPlayers == 4);
-
+        updatePlayerVisibility();
         for (int i = 0; i < numberOfPlayers; i++) {
             if (i != myIndex) {
                 for (int j = 0; j < 7; j++) {
@@ -108,6 +106,11 @@ public class GameOnline {
 
         updatePlayerLabels();
         listenToServer();
+    }
+
+    private void updatePlayerVisibility() {
+        leftPlayerContainer.setVisible(numberOfPlayers >= 3);
+        rightPlayerContainer.setVisible(numberOfPlayers == 4);
     }
 
     private void listenToServer() {
@@ -190,13 +193,12 @@ public class GameOnline {
         dialog.setResizable(false);
         dialog.show();
 
-        // Kiểm tra lại trạng thái sau khi hiển thị thông báo
         checkGameEndCondition();
     }
 
     private void checkGameEndCondition() {
         if (playerNames.size() == 1 && myHand.isEmpty()) {
-            showEndGameDialog(myName); // Tự động kết thúc nếu chỉ còn một người
+            showEndGameDialog(myName);
             gameOver = true;
         }
     }
@@ -224,17 +226,19 @@ public class GameOnline {
                         bottomPlayer.getChildren().remove(pendingButton);
                         pendingCard = null;
                         pendingButton = null;
+                        System.out.println("📊 Cập nhật myHand: " + myHand.size() + " lá");
 
                         if (myHand.isEmpty()) {
                             showNoCardsNotification();
                             client.send("GAME_OVER:" + myName);
-                            gameOver = true; // Đặt cờ gameOver ngay khi hết bài
+                            gameOver = true;
                         }
                     }
                 } else {
                     if (!opponentHands[idx].isEmpty()) {
                         opponentHands[idx].remove(0);
                         removeFaceDown(idx);
+                        System.out.println("📊 Cập nhật opponentHands[" + idx + "]: " + opponentHands[idx].size() + " lá");
                     }
 
                     if (card.getValue() == UnoCard.Value.DrawTwo || card.getValue() == UnoCard.Value.WildDrawFour) {
@@ -269,20 +273,23 @@ public class GameOnline {
             }
         } else if (msg.startsWith("DRAW_CARD:")) {
             String[] parts = msg.split(":");
-            if (parts.length < 3) {
+            if (parts.length < 4) {
                 System.out.println("❗ Lỗi định dạng DRAW_CARD: " + msg);
                 return;
             }
             String name = parts[1];
             int drawCount = Integer.parseInt(parts[2]);
+            String[] cardData = parts[3].split(";");
             GameLogger.logMove(name, "đã bốc " + drawCount + " lá");
 
             int idx = playerNames.indexOf(name);
             if (idx == myIndex) {
-                for (int i = 0; i < drawCount; i++) {
-                    UnoCard drawn = localDeck.drawCard();
+                for (String cardStr : cardData) {
+                    String[] cardParts = cardStr.split(",");
+                    UnoCard drawn = new UnoCard(UnoCard.Color.valueOf(cardParts[0]), UnoCard.Value.valueOf(cardParts[1]));
                     myHand.add(drawn);
                     addCardToHand(drawn);
+                    System.out.println("📊 Cập nhật myHand: " + myHand.size() + " lá");
                 }
                 drawStack = 0;
                 drawStackType = null;
@@ -297,9 +304,35 @@ public class GameOnline {
                 for (int i = 0; i < drawCount; i++) {
                     opponentHands[idx].add(null);
                     addFaceDown(idx);
+                    System.out.println("📊 Cập nhật opponentHands[" + idx + "]: " + opponentHands[idx].size() + " lá");
                 }
             }
-
+            updatePlayerLabels();
+        } else if (msg.startsWith("PLAYER_CARD_COUNT:")) {
+            String[] parts = msg.split(":");
+            if (parts.length != 3) {
+                System.out.println("❗ Lỗi định dạng PLAYER_CARD_COUNT: " + msg);
+                return;
+            }
+            String name = parts[1];
+            int cardCount = Integer.parseInt(parts[2]);
+            int idx = playerNames.indexOf(name);
+            if (idx == myIndex) {
+                if (myHand.size() != cardCount) {
+                    System.out.println("⚠️ Số lá bài không đồng bộ với server: myHand=" + myHand.size() + ", server=" + cardCount);
+                }
+            } else if (idx != -1) {
+                while (opponentHands[idx].size() < cardCount) {
+                    opponentHands[idx].add(null);
+                    addFaceDown(idx);
+                    System.out.println("📊 Cập nhật opponentHands[" + idx + "]: " + opponentHands[idx].size() + " lá");
+                }
+                while (opponentHands[idx].size() > cardCount) {
+                    opponentHands[idx].remove(0);
+                    removeFaceDown(idx);
+                    System.out.println("📊 Cập nhật opponentHands[" + idx + "]: " + opponentHands[idx].size() + " lá");
+                }
+            }
             updatePlayerLabels();
         } else if (msg.startsWith("CALL_UNO:")) {
             String name = msg.split(":")[1];
@@ -347,12 +380,22 @@ public class GameOnline {
             if (idx != -1) {
                 playerNames.remove(leftPlayer);
                 activePlayers--;
+                numberOfPlayers--;
                 opponentHands[idx].clear();
+                removeFaceDownAll(idx);
+                updatePlayerVisibility();
                 updatePlayerLabels();
-                System.out.println("Player left: " + leftPlayer + ", Active players: " + activePlayers); // Debug log
-                checkGameEndCondition(); // Kiểm tra lại điều kiện kết thúc
+                System.out.println("📊 Player left: " + leftPlayer + ", Active players: " + activePlayers);
+                checkGameEndCondition();
             }
         }
+    }
+
+    private void removeFaceDownAll(int idx) {
+        int relative = (idx - myIndex + numberOfPlayers) % numberOfPlayers;
+        if (relative == 1) topPlayer.getChildren().clear();
+        else if (relative == 2) leftPlayer.getChildren().clear();
+        else if (relative == 3) rightPlayer.getChildren().clear();
     }
 
     private boolean hasStackableCard() {
@@ -452,11 +495,15 @@ public class GameOnline {
 
     private void updatePlayerLabels() {
         bottomPlayerLabel.setText(myName + " (" + myHand.size() + ")");
-        topPlayerLabel.setText(playerNames.get((myIndex + 1) % numberOfPlayers) + " (" + opponentHands[(myIndex + 1) % numberOfPlayers].size() + ")");
+        topPlayerLabel.setText(playerNames.get((myIndex + 1) % playerNames.size()) + " (" + opponentHands[(myIndex + 1) % playerNames.size()].size() + ")");
         if (numberOfPlayers >= 3)
-            leftPlayerLabel.setText(playerNames.get((myIndex + 2) % numberOfPlayers) + " (" + opponentHands[(myIndex + 2) % numberOfPlayers].size() + ")");
+            leftPlayerLabel.setText(playerNames.get((myIndex + 2) % playerNames.size()) + " (" + opponentHands[(myIndex + 2) % playerNames.size()].size() + ")");
+        else
+            leftPlayerLabel.setText("");
         if (numberOfPlayers == 4)
-            rightPlayerLabel.setText(playerNames.get((myIndex + 3) % numberOfPlayers) + " (" + opponentHands[(myIndex + 3) % numberOfPlayers].size() + ")");
+            rightPlayerLabel.setText(playerNames.get((myIndex + 3) % playerNames.size()) + " (" + opponentHands[(myIndex + 3) % playerNames.size()].size() + ")");
+        else
+            rightPlayerLabel.setText("");
     }
 
     private void updateCurrentCardView(UnoCard card) {
