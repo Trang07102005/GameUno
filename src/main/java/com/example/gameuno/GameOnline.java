@@ -162,12 +162,39 @@ public class GameOnline {
     }
 
     private void showNoCardsNotification() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Thông báo");
-        alert.setHeaderText(null);
-        alert.setContentText("🎉 Bạn không còn lá bài! Chờ kết quả ván đấu...");
-        alert.showAndWait();
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.initOwner(exitButton.getScene().getWindow());
+        dialog.setTitle("Chiến thắng!");
+
+        StackPane dialogPane = new StackPane();
+        dialogPane.setStyle("-fx-background-color: rgba(0, 0, 0, 0.8);");
+        Label messageLabel = new Label();
+        messageLabel.setAlignment(Pos.CENTER);
+        messageLabel.setWrapText(true);
+        messageLabel.setText("🏆 Bạn đã thắng!");
+        messageLabel.setStyle("-fx-font-size: 24px; -fx-text-fill: gold;");
+
+        Button backButton = new Button("Quay về");
+        backButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px 20px; -fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;");
+        backButton.setOnAction(e -> {
+            dialog.close();
+            handleExit();
+        });
+
+        VBox vbox = new VBox(20, messageLabel, backButton);
+        vbox.setAlignment(Pos.CENTER);
+        dialogPane.getChildren().add(vbox);
+        Scene dialogScene = new Scene(dialogPane, 400, 250);
+        dialog.setScene(dialogScene);
+        dialog.setResizable(false);
+        dialog.show();
+
         // Kiểm tra lại trạng thái sau khi hiển thị thông báo
+        checkGameEndCondition();
+    }
+
+    private void checkGameEndCondition() {
         if (playerNames.size() == 1 && myHand.isEmpty()) {
             showEndGameDialog(myName); // Tự động kết thúc nếu chỉ còn một người
             gameOver = true;
@@ -323,11 +350,7 @@ public class GameOnline {
                 opponentHands[idx].clear();
                 updatePlayerLabels();
                 System.out.println("Player left: " + leftPlayer + ", Active players: " + activePlayers); // Debug log
-                if (activePlayers == 1 && myHand.isEmpty()) {
-                    showEndGameDialog(myName); // Hiển thị thông báo thắng ngay lập tức
-                    client.send("GAME_OVER:" + myName); // Gửi xác nhận đến máy chủ
-                    gameOver = true;
-                }
+                checkGameEndCondition(); // Kiểm tra lại điều kiện kết thúc
             }
         }
     }
