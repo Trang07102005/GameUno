@@ -41,7 +41,7 @@ public class UnoServer {
         private final PrintWriter out;
         private volatile boolean running = true;
         private String playerName = null;
-        private int playerIndex = -1; // MỚI: gán slot index cố định
+        private int playerIndex = -1;
 
         public ClientHandler(Socket socket) throws IOException {
             this.socket = socket;
@@ -67,72 +67,105 @@ public class UnoServer {
                                 out.flush();
                             }
                         }
-
                     } else if (line.startsWith("PLAYER_NAME:")) {
                         synchronized (clients) {
                             if (playerName == null && !gameStarted) {
                                 playerName = line.split(":")[1];
-                                playerIndex = playerNames.size(); // MỚI: chỉ số slot
+                                playerIndex = playerNames.size();
                                 playerNames.add(playerName);
                                 System.out.println("✅ Đăng ký: " + playerName + " [slot " + playerIndex + "]");
                                 broadcast("WAITING_PLAYERS:" + (expectedPlayers - playerNames.size()));
                                 checkStartGame();
                             }
                         }
-
                     } else if (line.startsWith("PLAY_CARD:")) {
-                    try {
-                        // ⚠ Tách theo dấu ":" đầu tiên
-                        String[] mainParts = line.split(":", 2);
-                        if (mainParts.length < 2) {
-                            System.out.println("❗ Lỗi định dạng PLAY_CARD: " + line);
+                        try {
+                            String[] mainParts = line.split(":", 2);
+                            if (mainParts.length < 2) {
+                                System.out.println("❗ Lỗi định dạng PLAY_CARD: " + line);
+                                return;
+                            }
+
+                            String payload = mainParts[1].trim();
+                            String[] splitPayload = payload.split(" ");
+                            if (splitPayload.length != 2) {
+                                System.out.println("❗ PLAY_CARD sai định dạng: " + payload);
+                                return;
+                            }
+
+                            String playerName = splitPayload[0];
+                            String[] cardParts = splitPayload[1].split(",");
+                            if (cardParts.length != 2) {
+                                System.out.println("❗ Lá bài không hợp lệ: " + splitPayload[1]);
+                                return;
+                            }
+
+                            UnoCard.Color color = UnoCard.Color.valueOf(cardParts[0]);
+                            UnoCard.Value value = UnoCard.Value.valueOf(cardParts[1]);
+                            UnoCard played = new UnoCard(color, value);
+
+                            if ((currentPlayer - 1) != playerIndex) {
+                                System.out.println("⚠️ Sai lượt: " + playerName);
+                                return;
+                            }
+
+                            currentCard = played;
+                            System.out.println("🔥 " + playerName + " đánh: " + currentCard);
+                            broadcast("PLAY_CARD:" + this.playerName + " " + cardParts[0] + "," + cardParts[1]);
+
+                            if (value == UnoCard.Value.Skip) {
+                                System.out.println("🚫 Bỏ lượt người tiếp theo!");
+                                broadcast("INFO:SKIP:" + getNextPlayerName());
+                                nextPlayer();
+                                nextPlayer();
+                            } else if (value == UnoCard.Value.Reverse) {
+                                System.out.println("🔄 Reverse được chơi (chưa hỗ trợ đổi chiều thực sự)");
+                                broadcast("INFO:REVERSE:" + playerName);
+                                if (expectedPlayers == 2) {
+                                    nextPlayer();
+                                } else {
+                                    nextPlayer();
+                                }
+                            } else if (value == UnoCard.Value.DrawTwo) {
+                                String nextPlayerName = getNextPlayerName();
+                                nextPlayer();
+                                System.out.println("📤 " + nextPlayerName + " phải rút 2 lá!");
+                                broadcast("DRAW_CARD:" + nextPlayerName + ":2");
+                                nextPlayer();
+                            } else if (value == UnoCard.Value.WildDrawFour) {
+                                String nextPlayerName = getNextPlayerName();
+                                nextPlayer();
+                                System.out.println("📤 " + nextPlayerName + " phải rút 4 lá!");
+                                broadcast("DRAW_CARD:" + nextPlayerName + ":4");
+                                nextPlayer();
+                            } else {
+                                nextPlayer();
+                            }
+                        } catch (Exception e) {
+                            System.out.println("❗ Lỗi xử lý PLAY_CARD: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    } else if (line.startsWith("DRAW_CARD:")) {
+                        String[] parts = line.split(":");
+                        if (parts.length < 2) {
+                            System.out.println("❗ Lỗi định dạng DRAW_CARD: " + line);
                             return;
                         }
-
-                        String payload = mainParts[1].trim(); // ví dụ: "1 Red,Eight"
-                        String[] splitPayload = payload.split(" ");
-                        if (splitPayload.length != 2) {
-                            System.out.println("❗ PLAY_CARD sai định dạng: " + payload);
-                            return;
-                        }
-
-                        String playerName = splitPayload[0];  // "1"
-                        String[] cardParts = splitPayload[1].split(",");
-                        if (cardParts.length != 2) {
-                            System.out.println("❗ Lá bài không hợp lệ: " + splitPayload[1]);
-                            return;
-                        }
-
-                        UnoCard.Color color = UnoCard.Color.valueOf(cardParts[0]);
-                        UnoCard.Value value = UnoCard.Value.valueOf(cardParts[1]);
-                        UnoCard played = new UnoCard(color, value);
-
-                        if ((currentPlayer - 1) != playerIndex) {
-                            System.out.println("⚠️ Sai lượt: " + playerName);
-                            return;
-                        }
-
-                        currentCard = played;
-                        System.out.println("🔥 " + playerName + " đánh: " + currentCard);
-                        broadcast("PLAY_CARD:" + this.playerName + " " + cardParts[0] + "," + cardParts[1]);
-                        nextPlayer();
-
-                    } catch (Exception e) {
-                        System.out.println("❗ Lỗi xử lý PLAY_CARD: " + e.getMessage());
-                        e.printStackTrace();
-                    }
-
-            } else if (line.startsWith("DRAW_CARD:")) {
-                        String name = line.split(":")[1];
+                        String name = parts[1];
+                        int drawCount = (parts.length > 2) ? Integer.parseInt(parts[2]) : 1;
                         if ((currentPlayer - 1) != playerIndex) {
                             System.out.println("⚠️ Sai lượt rút: " + playerName);
                             continue;
                         }
-                        broadcast(line);
+                        System.out.println("📤 " + name + " rút " + drawCount + " lá!");
+                        broadcast("DRAW_CARD:" + name + ":" + drawCount);
                         nextPlayer();
-
                     } else if (line.startsWith("CALL_UNO:")) {
                         broadcast(line);
+                    } else if (line.startsWith("GAME_OVER:")) {
+                        String winner = line.split(":")[1];
+                        System.out.println("🏆 Trò chơi kết thúc, người thắng: " + winner);
+                        broadcast("GAME_OVER:" + winner);
                     }
                 }
             } catch (IOException e) {
@@ -205,9 +238,17 @@ public class UnoServer {
         private void disconnect() {
             synchronized (clients) {
                 running = false;
-                if (playerName != null) playerNames.remove(playerName);
+                if (playerName != null) {
+                    playerNames.remove(playerName);
+                    System.out.println("🧹 Xoá [" + playerName + "]");
+                    broadcast("PLAYER_LEFT:" + playerName); // Thông báo cho các máy khách còn lại
+                    if (playerNames.size() == 1 && gameStarted) {
+                        String winner = playerNames.get(0);
+                        System.out.println("🏆 Chỉ còn 1 người chơi, người thắng: " + winner);
+                        broadcast("GAME_OVER:" + winner); // Kết thúc game nếu chỉ còn 1 người
+                    }
+                }
                 clients.remove(this);
-                System.out.println("🧹 Xoá [" + playerName + "]");
                 if (!gameStarted) {
                     broadcast("WAITING_PLAYERS:" + (expectedPlayers - playerNames.size()));
                 }
@@ -220,6 +261,14 @@ public class UnoServer {
             try { out.close(); } catch (Exception ignored) {}
             try { socket.close(); } catch (Exception ignored) {}
             System.out.println("🔌 Đóng [" + playerName + "]");
+        }
+
+        private String getCurrentPlayerName() {
+            return playerNames.get(currentPlayer - 1);
+        }
+
+        private String getNextPlayerName() {
+            return playerNames.get(currentPlayer % expectedPlayers);
         }
     }
 }

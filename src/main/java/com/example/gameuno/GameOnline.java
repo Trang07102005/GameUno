@@ -40,6 +40,7 @@ public class GameOnline {
     private int myIndex;
     private int numberOfPlayers;
     private int currentPlayer;
+    private int activePlayers; // Số lượng người chơi còn lại
 
     private UnoCard pendingCard;
     private Button pendingButton;
@@ -58,11 +59,11 @@ public class GameOnline {
         imgView.setFitHeight(80);
         drawCardButton.setGraphic(imgView);
     }
+
     private void showEndGameScreen(String winnerName) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("EndGameScreen.fxml"));
             StackPane root = loader.load();
-
             EndGameController controller = loader.getController();
             controller.setWinner(winnerName);
 
@@ -77,10 +78,10 @@ public class GameOnline {
         }
     }
 
-
     public void initPlayers(int numberOfPlayers, List<String> playerNames, UnoClientConnection client, String myName, List<UnoCard> myInitialHand, UnoCard firstCard) {
         this.numberOfPlayers = numberOfPlayers;
-        this.playerNames = playerNames;
+        this.playerNames = new ArrayList<>(playerNames); // Sao chép để theo dõi
+        this.activePlayers = playerNames.size();
         this.client = client;
         this.myName = myName;
         this.myIndex = playerNames.indexOf(myName);
@@ -135,7 +136,7 @@ public class GameOnline {
         messageLabel.setAlignment(Pos.CENTER);
         messageLabel.setWrapText(true);
         messageLabel.setText(message);
-        messageLabel.setStyle(isWin ? "-fx-font-size: 24px; - Ascending -fx-text-fill: gold;" : "-fx-font-size: 22px; -fx-text-fill: red;");
+        messageLabel.setStyle(isWin ? "-fx-font-size: 24px; -fx-text-fill: gold;" : "-fx-font-size: 22px; -fx-text-fill: red;");
 
         Button okButton = new Button("Quay lại menu");
         okButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px 20px; -fx-background-color: #4CAF50; -fx-text-fill: white; -fx-background-radius: 5px;");
@@ -166,6 +167,11 @@ public class GameOnline {
         alert.setHeaderText(null);
         alert.setContentText("🎉 Bạn không còn lá bài! Chờ kết quả ván đấu...");
         alert.showAndWait();
+        // Kiểm tra lại trạng thái sau khi hiển thị thông báo
+        if (playerNames.size() == 1 && myHand.isEmpty()) {
+            showEndGameDialog(myName); // Tự động kết thúc nếu chỉ còn một người
+            gameOver = true;
+        }
     }
 
     private void handleServer(String msg) {
@@ -195,6 +201,7 @@ public class GameOnline {
                         if (myHand.isEmpty()) {
                             showNoCardsNotification();
                             client.send("GAME_OVER:" + myName);
+                            gameOver = true; // Đặt cờ gameOver ngay khi hết bài
                         }
                     }
                 } else {
@@ -206,6 +213,22 @@ public class GameOnline {
                     if (card.getValue() == UnoCard.Value.DrawTwo || card.getValue() == UnoCard.Value.WildDrawFour) {
                         drawStackType = card.getValue();
                         drawStack += (card.getValue() == UnoCard.Value.DrawTwo) ? 2 : 4;
+                    } else if (card.getValue() == UnoCard.Value.Skip) {
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                            alert.setTitle("Thông báo");
+                            alert.setHeaderText(null);
+                            alert.setContentText("🚫 " + name + " đã bỏ lượt 1 người chơi!");
+                            alert.showAndWait();
+                        });
+                    } else if (card.getValue() == UnoCard.Value.Reverse) {
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                            alert.setTitle("Thông báo");
+                            alert.setHeaderText(null);
+                            alert.setContentText("🔄 " + name + " đã đảo ngược hướng chơi!");
+                            alert.showAndWait();
+                        });
                     } else {
                         drawStack = 0;
                         drawStackType = null;
@@ -218,11 +241,16 @@ public class GameOnline {
                 showGameDialog("❗ Lỗi xử lý PLAY_CARD", false, myName);
             }
         } else if (msg.startsWith("DRAW_CARD:")) {
-            String name = msg.split(":")[1];
-            GameLogger.logMove(name, "đã bốc bài");
-            int idx = playerNames.indexOf(name);
-            int drawCount = (drawStack > 0) ? drawStack : 1;
+            String[] parts = msg.split(":");
+            if (parts.length < 3) {
+                System.out.println("❗ Lỗi định dạng DRAW_CARD: " + msg);
+                return;
+            }
+            String name = parts[1];
+            int drawCount = Integer.parseInt(parts[2]);
+            GameLogger.logMove(name, "đã bốc " + drawCount + " lá");
 
+            int idx = playerNames.indexOf(name);
             if (idx == myIndex) {
                 for (int i = 0; i < drawCount; i++) {
                     UnoCard drawn = localDeck.drawCard();
@@ -286,6 +314,21 @@ public class GameOnline {
             if (name.equals(myName)) {
                 showNoCardsNotification();
             }
+        } else if (msg.startsWith("PLAYER_LEFT:")) {
+            String leftPlayer = msg.split(":")[1];
+            int idx = playerNames.indexOf(leftPlayer);
+            if (idx != -1) {
+                playerNames.remove(leftPlayer);
+                activePlayers--;
+                opponentHands[idx].clear();
+                updatePlayerLabels();
+                System.out.println("Player left: " + leftPlayer + ", Active players: " + activePlayers); // Debug log
+                if (activePlayers == 1 && myHand.isEmpty()) {
+                    showEndGameDialog(myName); // Hiển thị thông báo thắng ngay lập tức
+                    client.send("GAME_OVER:" + myName); // Gửi xác nhận đến máy chủ
+                    gameOver = true;
+                }
+            }
         }
     }
 
@@ -304,14 +347,14 @@ public class GameOnline {
             gameStatusLabel.setStyle("");
             return;
         }
-        GameLogger.logMove(myName, "đã bốc bài"); // Log local draw action
+        GameLogger.logMove(myName, "đã bốc bài");
         client.send("DRAW_CARD:" + myName);
     }
 
     @FXML
     private void callUno() {
         if (gameOver) return;
-        GameLogger.logMove(myName, "đã kêu UNO!"); // Log local UNO call
+        GameLogger.logMove(myName, "đã kêu UNO!");
         client.send("CALL_UNO:" + myName);
     }
 
@@ -344,7 +387,7 @@ public class GameOnline {
             return;
         }
 
-        GameLogger.logMove(myName, "đã đánh lá " + card.getColor() + " " + card.getValue()); // Log local play action
+        GameLogger.logMove(myName, "đã đánh lá " + card.getColor() + " " + card.getValue());
         if (card.getValue() == UnoCard.Value.Wild || card.getValue() == UnoCard.Value.WildDrawFour) {
             List<String> options = List.of("Red", "Yellow", "Green", "Blue");
             ChoiceDialog<String> dialog = new ChoiceDialog<>("Red", options);
@@ -439,5 +482,4 @@ public class GameOnline {
         alert.setContentText("⚠️ Bạn không có lá bài nào phù hợp.\nVui lòng bốc bài.");
         alert.showAndWait();
     }
-
 }
